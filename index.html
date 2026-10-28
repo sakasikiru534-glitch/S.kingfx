@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>S.KingFx Lab — Gold Backtest</title>
+<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+:root{color-scheme:dark;--bg:#080a0f;--panel:#11151d;--line:#242b38;--text:#e8edf5;--muted:#98a4b7;--gold:#d9ad4c;--green:#21b889;--red:#f06470}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.brand{font-weight:800;letter-spacing:.3px}.brand span{color:var(--gold)}.pill{font-size:11px;color:var(--gold);border:1px solid #594822;border-radius:20px;padding:5px 8px}
+main{max-width:1100px;margin:auto;padding:12px;display:grid;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px;min-width:0}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.muted{color:var(--muted);font-size:12px}
+h2{font-size:16px;margin:0 0 8px}.price{font-size:22px;font-weight:750;color:var(--gold)}
+.controls{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
+button,select,input{font:inherit;background:#0b0e14;color:var(--text);border:1px solid #30394a;border-radius:9px;padding:10px;min-height:40px}
+button{cursor:pointer}button.active,button.primary{background:#3a2d12;border-color:var(--gold);color:#ffe2a0}
+button:disabled{opacity:.4;cursor:not-allowed}
+#chart{height:340px;width:100%;margin-top:8px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}input{width:100%}
+.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.metric{background:#0b0e14;border:1px solid var(--line);border-radius:10px;padding:10px}.metric b{display:block;font-size:18px;margin-top:4px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.note{font-size:12px;line-height:1.5;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:12px}td,th{text-align:left;padding:8px;border-bottom:1px solid var(--line)}.scroll{overflow:auto}
+footer{padding:4px 2px 20px;color:var(--muted);font-size:11px}
+@media(min-width:800px){main{grid-template-columns:1.6fr 1fr}.wide{grid-column:1/-1}#chart{height:460px}.metrics{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:380px){#chart{height:290px}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="brand">S.King<span>Fx</span> Lab</div><div class="pill">DEMO BACKTEST · NO LIVE ORDERS</div></header>
+<main>
+<section class="card">
+ <div class="top"><div><h2>XAUUSD · Gold / USD</h2><div class="muted">Starter chart · example candles are simulated</div></div><div class="price" id="price">$2,350.00</div></div>
+ <div class="controls" id="tf"><button class="active" data-tf="5">M5</button><button data-tf="15">M15</button><button data-tf="60">H1</button><button data-tf="240">H4</button></div>
+ <div id="chart"></div>
+ <div class="controls"><button id="prev">◀ Previous candle</button><button id="next" class="primary">Next candle ▶</button><button id="reset">Reset replay</button></div>
+ <div class="note" id="replayInfo">Replay starts with a small historical window. Step forward one candle at a time to practice decisions.</div>
+</section>
+<section class="card">
+ <h2>Trade simulator</h2>
+ <p class="muted">Enter prices based on the candle you can currently see. No real orders are sent.</p>
+ <div class="grid">
+  <div><label for="side">Direction</label><select id="side"><option value="buy">Buy</option><option value="sell">Sell</option></select></div>
+  <div><label for="entry">Entry price</label><input id="entry" type="number" step=".01" value="2350"></div>
+  <div><label for="sl">Stop loss</label><input id="sl" type="number" step=".01" value="2345"></div>
+  <div><label for="tp">Take profit</label><input id="tp" type="number" step=".01" value="2360"></div>
+ </div>
+ <div class="controls"><button id="calc" class="primary">Calculate risk : reward</button><button id="mark">Mark entry on chart</button></div>
+ <div class="metrics">
+  <div class="metric"><span class="muted">Risk distance</span><b id="risk">—</b></div>
+  <div class="metric"><span class="muted">Reward distance</span><b id="reward">—</b></div>
+  <div class="metric"><span class="muted">Risk : reward</span><b id="rr">—</b></div>
+  <div class="metric"><span class="muted">Setup check</span><b id="valid" style="font-size:14px">—</b></div>
+ </div>
+ <p class="note">Distance is shown in gold price units, not account-currency profit. Contract size, lot size, spread, commission and slippage vary by broker.</p>
+</section>
+<section class="card wide">
+ <div class="top"><h2>Backtest log</h2><button id="clear">Clear log</button></div>
+ <p class="muted">Use “Record outcome” after reviewing a completed historical setup. Results are educational, not proof of future profitability.</p>
+ <div class="controls"><button id="win">Record win</button><button id="loss">Record loss</button><button id="be">Record breakeven</button></div>
+ <div class="metrics">
+  <div class="metric"><span class="muted">Trades recorded</span><b id="trades">0</b></div>
+  <div class="metric"><span class="muted">Wins / losses</span><b id="wl">0 / 0</b></div>
+  <div class="metric"><span class="muted">Win rate</span><b id="wr">—</b></div>
+  <div class="metric"><span class="muted">Net R (manual)</span><b id="netr">0.00R</b></div>
+ </div>
+ <div class="scroll" style="margin-top:12px"><table><thead><tr><th>#</th><th>Replay candle</th><th>Outcome</th><th>R result</th></tr></thead><tbody id="log"><tr><td colspan="4" class="muted">No trades recorded yet.</td></tr></tbody></table></div>
+</section>
+<footer class="wide">Starter prototype by S.KingFx Lab. Chart library: TradingView Lightweight Charts (Apache 2.0; attribution required). Example candles are randomly generated for interface testing only, not real XAUUSD prices. Internet is required to load the chart library from its CDN. Do not use for live trading.</footer>
+</main>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+let all=[],visible=30,tf=5,logs=[],series,chart,markers=[];
+function makeData(){
+ let p=2350, t=Math.floor(Date.UTC(2025,0,2,0,0)/1000), arr=[];
+ for(let i=0;i<260;i++){let o=p, drift=(Math.random()-.49)*3.8, c=Math.max(1,o+drift), h=Math.max(o,c)+Math.random()*1.8, l=Math.min(o,c)-Math.random()*1.8;
+ arr.push({time:t,open:+o.toFixed(2),high:+h.toFixed(2),low:+l.toFixed(2),close:+c.toFixed(2)});p=c;t+=tf*60;}
+ return arr;
+}
+function init(){
+ if(!window.LightweightCharts){$('chart').innerHTML='<p class="note">Chart library could not load. Check your internet connection and refresh.</p>';return;}
+ chart=LightweightCharts.createChart($('chart'),{layout:{background:{type:'solid',color:'#11151d'},textColor:'#98a4b7'},grid:{vertLines:{color:'#202633'},horzLines:{color:'#202633'}},rightPriceScale:{borderColor:'#30394a'},timeScale:{borderColor:'#30394a',timeVisible:true,secondsVisible:false},crosshair:{mode:0}});
+ series=chart.addSeries(LightweightCharts.CandlestickSeries,{upColor:'#21b889',downColor:'#f06470',borderVisible:false,wickUpColor:'#21b889',wickDownColor:'#f06470'});
+ all=makeData();render();
+ new ResizeObserver(()=>chart.applyOptions({width:$('chart').clientWidth,height:$('chart').clientHeight})).observe($('chart'));
+}
+function render(){if(!series)return;series.setData(all.slice(0,visible));chart.timeScale().fitContent();const c=all[Math.max(0,visible-1)];$('price').textContent='$'+c.close.toFixed(2);$('replayInfo').textContent=`Showing ${visible} of ${all.length} simulated candles · ${tf===60?'H1':tf===240?'H4':'M'+tf} · Candle ${visible}`;$('prev').disabled=visible<=1;$('next').disabled=visible>=all.length;}
+function updateStats(){let w=logs.filter(x=>x.out==='Win').length,l=logs.filter(x=>x.out==='Loss').length,net=logs.reduce((a,x)=>a+x.r,0);$('trades').textContent=logs.length;$('wl').textContent=`${w} / ${l}`;$('wr').textContent=logs.length?Math.round(w/logs.length*100)+'%':'—';$('netr').textContent=net.toFixed(2)+'R';$('log').innerHTML=logs.length?logs.slice().reverse().map((x,i)=>`<tr><td>${logs.length-i}</td><td>${x.candle}</td><td>${x.out}</td><td>${x.r.toFixed(2)}R</td></tr>`).join(''):'<tr><td colspan="4" class="muted">No trades recorded yet.</td></tr>';}
+function calculate(){let e=+$('entry').value,s=+$('sl').value,t=+$('tp').value,side=$('side').value;let r=Math.abs(e-s),rew=Math.abs(t-e),valid=side==='buy'?(s<e&&t>e):(s>e&&t<e);$('risk').textContent=r.toFixed(2);$('reward').textContent=rew.toFixed(2);$('rr').textContent=r>0?(rew/r).toFixed(2)+':1':'—';$('valid').textContent=valid&&r>0?'Valid geometry':'Check levels';$('valid').style.color=valid&&r>0?'#21b889':'#f06470';return {e,s,t,valid:valid&&r>0};}
+$('prev').onclick=()=>{visible=Math.max(1,visible-1);render()};$('next').onclick=()=>{visible=Math.min(all.length,visible+1);render()};$('reset').onclick=()=>{visible=30;render()};
+$('tf').querySelectorAll('button').forEach(b=>b.onclick=()=>{tf=+b.dataset.tf;$('tf').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));all=makeData();visible=30;render();});
+$('calc').onclick=calculate;$('mark').onclick=()=>{if(!series)return;let q=calculate();if(!q.valid){alert('Please check entry, stop-loss and take-profit for the selected direction.');return;}series.createPriceLine({price:q.e,color:'#d9ad4c',lineWidth:2,lineStyle:2,axisLabelVisible:true,title:'Entry'});};
+function record(out){let q=calculate();if(!q.valid){alert('Check your entry, stop-loss and take-profit first.');return;}let r=out==='Win'?Math.abs(q.t-q.e)/Math.abs(q.e-q.s):out==='Loss'?-1:0;logs.push({out,r,candle:visible});updateStats();}
+$('win').onclick=()=>record('Win');$('loss').onclick=()=>record('Loss');$('be').onclick=()=>record('Breakeven');$('clear').onclick=()=>{if(confirm('Clear all recorded outcomes?')){logs=[];updateStats();}};
+init();calculate();
+})();
+</script>
+</body>
+</html>
