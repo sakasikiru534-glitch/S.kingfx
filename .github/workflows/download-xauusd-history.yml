@@ -33,11 +33,11 @@ jobs:
 
       - name: Download XAUUSD 1-minute candles
         run: |
-          npx --yes dukascopy-node -i xauusd -from "${{ inputs.date_from }}" -to "${{ inputs.date_to }}" -t m1 -f csv -dir ./download/m1 -bs 3 -bp 2000 -r 3 -re
+          npx --yes dukascopy-node -i xauusd -from "${{ inputs.date_from }}" -to "${{ inputs.date_to }}" -t m1 -f csv -dir ./download/m1 -bs 3 -bp 2000 -r 3 -re -fr
 
       - name: Download XAUUSD 5-minute candles
         run: |
-          npx --yes dukascopy-node -i xauusd -from "${{ inputs.date_from }}" -to "${{ inputs.date_to }}" -t m5 -f csv -dir ./download/m5 -bs 3 -bp 2000 -r 3 -re
+          npx --yes dukascopy-node -i xauusd -from "${{ inputs.date_from }}" -to "${{ inputs.date_to }}" -t m5 -f csv -dir ./download/m5 -bs 3 -bp 2000 -r 3 -re -fr
 
       - name: Check downloaded CSV files
         run: |
