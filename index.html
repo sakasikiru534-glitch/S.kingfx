@@ -27,7 +27,7 @@ main{max-width:1280px;margin:auto;padding:18px;display:grid;grid-template-column
  <div class="notice"><b>Your file should contain:</b> Date/Time, Open, High, Low and Close. Volume is optional. Each row should represent one candle.</div>
  <input class="file" id="csvFile" type="file" accept=".csv,text/csv">
  <div class="controls"><button class="primary" id="chooseCsv">Choose CSV file</button><button id="downloadCsvExample">Download format example</button><button id="sample">Load sample practice data</button></div>
- <div class="hint">The format example only shows how columns should look; it is NOT real XAUUSD history. Use genuine historical XAUUSD data for a meaningful backtest. Supported date formats include YYYY-MM-DD, YYYY.MM.DD and Unix timestamps. Accepted column names include Date/Time, Open, High, Low, Close and optional Volume.</div>
+ <div class="hint">The format example only shows how columns should look; it is NOT real XAUUSD history. Use genuine historical XAUUSD data for a meaningful backtest. The importer recognises comma, semicolon and tab-separated files; common Date/Time or separate Date + Time columns; and common OHLCV heading variations. Invalid rows and duplicate timestamps are skipped and reported.</div>
  <div class="hint" id="importHelp" role="status">No file imported yet. Your imported candles and journal stay in this browser.</div>
  <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
  <h2>Trade planner</h2>
@@ -100,7 +100,34 @@ try{const saved=JSON.parse(localStorage.getItem(SETTINGS)||'null');if(saved&&typ
 try{journal=JSON.parse(localStorage.getItem(STORE)||'[]');if(!Array.isArray(journal))journal=[]}catch(e){journal=[]}
 function persist(){try{localStorage.setItem(STORE,JSON.stringify(journal));localStorage.setItem(SETTINGS,JSON.stringify(settings))}catch(e){alert('Browser storage is full. Please export a backup.')}} 
 function dateValue(v){if(v===undefined||v===null||v==='')return null;let s=String(v).trim();if(/^\d{10,13}$/.test(s)){let n=Number(s);return Math.floor(n>1e12?n/1000:n)}let d=new Date(s.replace(/\./g,'-'));if(Number.isNaN(d.getTime()))return null;return Math.floor(d.getTime()/1000)}
-function parseCSV(text){let rows=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim()).map(line=>{let a=[],v='',q=false;for(let i=0;i<line.length;i++){let c=line[i];if(c==='"'&&line[i+1]==='"'&&q){v+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){a.push(v.trim());v=''}else v+=c}a.push(v.trim());return a});if(rows.length<2)throw Error('CSV needs a header row and at least one candle.');let h=rows[0].map(x=>x.toLowerCase().replace(/[^a-z]/g,''));const ix=(names)=>h.findIndex(x=>names.includes(x));let ti=ix(['time','date','datetime','timestamp']);let oi=ix(['open']),hi=ix(['high']),li=ix(['low']),ci=ix(['close']),vi=ix(['volume','tickvolume']);if([ti,oi,hi,li,ci].some(x=>x<0))throw Error('Required columns: Date/Time, Open, High, Low, Close.');let out=[];for(let r of rows.slice(1)){let time=dateValue(r[ti]),open=Number(r[oi]),high=Number(r[hi]),low=Number(r[li]),close=Number(r[ci]),volume=vi>=0?Number(r[vi])||0:0;if(time&&[open,high,low,close].every(Number.isFinite)&&high>=Math.max(open,close,low)&&low<=Math.min(open,close,high))out.push({time,open,high,low,close,volume})}out.sort((a,b)=>a.time-b.time);out=out.filter((x,i)=>!i||x.time!==out[i-1].time);if(out.length<2)throw Error('Could not read enough valid candles. Check your CSV dates and prices.');return out}
+function parseCSV(text){
+ text=String(text||'').replace(/^\uFEFF/,'').trim();
+ if(!text)throw Error('The selected file is empty.');
+ const firstLine=text.split(/\r?\n/,1)[0],counts=[',',';','\\t'].map(d=>({d,n:(firstLine.match(new RegExp(d==='\\t'?'\\\\t':d===';'?';':',','g'))||[]).length})).sort((a,b)=>b.n-a.n),delimiter=counts[0].n?counts[0].d:',';
+ const rows=text.split(/\r?\n/).filter(x=>x.trim()).map(line=>{let a=[],v='',q=false;for(let i=0;i<line.length;i++){let ch=line[i];if(ch==='"'&&line[i+1]==='"'&&q){v+='"';i++}else if(ch==='"')q=!q;else if(ch===delimiter&&!q){a.push(v.trim());v=''}else v+=ch}a.push(v.trim());return a});
+ if(rows.length<2)throw Error('CSV needs a header row and at least one candle.');
+ const h=rows[0].map(x=>x.toLowerCase().replace(/[^a-z0-9]/g,''));
+ const ix=names=>h.findIndex(x=>names.includes(x));
+ const oi=ix(['open','op']),hi=ix(['high','hi']),li=ix(['low','lo']),ci=ix(['close','closingprice','last']);
+ const dateIx=ix(['date','day']),timeIx=ix(['time','gmt time','gmttime','localtime','datetime','timestamp','date time','datatime'].map(x=>x.replace(/[^a-z0-9]/g,'')));
+ const combinedIx=ix(['datetime','timestamp','gmttime','localtime','datetimestamp']);
+ const vi=ix(['volume','tickvolume','tickvol','vol']);
+ if([oi,hi,li,ci].some(x=>x<0))throw Error('I found the file, but its headings must include Open, High, Low and Close.');
+ if(combinedIx<0&&dateIx<0&&timeIx<0)throw Error('I could not find a Date/Time column. Include a date, timestamp or separate Date and Time columns.');
+ const number=(v)=>{let n=Number(String(v??'').replace(/,/g,'').trim());return Number.isFinite(n)?n:NaN};
+ let out=[],invalid=0;
+ for(const r of rows.slice(1)){
+  const rawTime=combinedIx>=0?r[combinedIx]:timeIx>=0?r[timeIx]:r[dateIx];
+  const dateTime=dateIx>=0&&timeIx>=0&&dateIx!==timeIx?(String(r[dateIx]||'')+' '+String(r[timeIx]||'' )).trim():rawTime;
+  const time=dateValue(dateTime),open=number(r[oi]),high=number(r[hi]),low=number(r[li]),close=number(r[ci]),volume=vi>=0?number(r[vi]):0;
+  if(time!==null&&[open,high,low,close].every(Number.isFinite)&&high>=Math.max(open,close,low)&&low<=Math.min(open,close,high))out.push({time,open,high,low,close,volume:Number.isFinite(volume)?volume:0});else invalid++;
+ }
+ out.sort((a,b)=>a.time-b.time);
+ const before=out.length;out=out.filter((x,i)=>!i||x.time!==out[i-1].time);const duplicates=before-out.length;
+ if(out.length<2)throw Error('I could not find at least two valid candles. Check that the file contains actual price rows, not an empty sample or JSON data.');
+ out.importReport={invalid,duplicates,delimiter:delimiter==='\\t'?'tab':delimiter,sourceRows:rows.length-1};
+ return out
+}
 function sampleData(){let p=2350,t=Date.UTC(2025,0,2)/1000,a=[];for(let i=0;i<240;i++){let o=p,c=o+(Math.random()-.49)*4,h=Math.max(o,c)+Math.random()*1.5,l=Math.min(o,c)-Math.random()*1.5;a.push({time:t,open:+o.toFixed(2),high:+h.toFixed(2),low:+l.toFixed(2),close:+c.toFixed(2)});p=c;t+=300}return a}
 function stopPlay(){playing=false;clearInterval(playTimer);$('play').textContent='▶ Play'}
 function initChart(){
@@ -128,7 +155,7 @@ function aggregateData(data,seconds){let out=[];for(const b of data){let t=bucke
 function baseInterval(data){if(data.length<2)return Infinity;let diffs=[];for(let i=1;i<Math.min(data.length,80);i++){let d=data[i].time-data[i-1].time;if(d>0)diffs.push(d)}diffs.sort((a,b)=>a-b);return diffs.length?diffs[Math.floor(diffs.length/2)]:Infinity}
 function setTimeframe(seconds){selectedTf=seconds;viewBars=aggregateData(bars,seconds);let base=baseInterval(bars),btns=[...$("timeframes").querySelectorAll("button")];btns.forEach(b=>{let tf=Number(b.dataset.tf);b.disabled=tf<base*0.9||!viewBars.length;b.classList.toggle("active",tf===seconds)});let active=btns.find(b=>Number(b.dataset.tf)===seconds);if(!active||active.disabled){let available=btns.find(b=>!b.disabled);if(available){selectedTf=Number(available.dataset.tf);viewBars=aggregateData(bars,selectedTf);btns.forEach(b=>b.classList.toggle("active",b===available))}}shown=Math.min(30,viewBars.length);chartFitted=false;$("tfStatus").textContent="Showing "+timeframeLabel(selectedTf)+" candles. "+(Number.isFinite(base)&&base>60?"Your source data is about "+timeframeLabel(base)+"; smaller timeframes cannot be recreated from it.":"Timeframes smaller than your source data are unavailable.");render()}
 function render(){if(!candleSeries||!viewBars.length)return;let data=viewBars.slice(0,shown);candleSeries.setData(data);let last=data[data.length-1];$("lastPrice").textContent=last?"$"+last.close.toFixed(2):"—";$("dataStatus").textContent=bars.length+" source candles · "+viewBars.length+" "+timeframeLabel(selectedTf)+" candles";$("replayStatus").textContent="Candle "+shown+" of "+viewBars.length+" · Future candles are hidden";$("back").disabled=shown<=1;$("forward").disabled=shown>=viewBars.length;if(data.length&&!chartFitted){chart.timeScale().fitContent();chartFitted=true}}
-function loadData(data){stopPlay();bars=data;setTimeframe(selectedTf);let interval=baseInterval(data);$('importHelp').textContent='Imported '+data.length+' candles successfully. Approximate source interval: '+(Number.isFinite(interval)?timeframeLabel(interval):'unknown')+'. Use a matching or larger timeframe for replay.'}
+function loadData(data){stopPlay();bars=data;setTimeframe(selectedTf);let interval=baseInterval(data),report=data.importReport;$('importHelp').textContent='Imported '+data.length+' valid candles successfully. Approximate source interval: '+(Number.isFinite(interval)?timeframeLabel(interval):'unknown')+'.'+(report?' Skipped '+report.invalid+' invalid rows and '+report.duplicates+' duplicate timestamps. Detected '+(report.delimiter==='tab'?'tab':report.delimiter===';'?'semicolon':'comma')+' separator.':'')+' Use a matching or larger timeframe for replay.'}
 function calc(){let e=Number($('entry').value),s=Number($('sl').value),t=Number($('tp').value),side=$('side').value,b=Number($('balance').value),rp=Number($('riskPct').value),valid=[e,s,t,b,rp].every(Number.isFinite)&&e>0&&b>0&&rp>0&&(side==='buy'?s<e&&t>e:s>e&&t<e),risk=Math.abs(e-s),reward=Math.abs(t-e);$('riskDist').textContent=valid?risk.toFixed(2):'—';$('rewardDist').textContent=valid?reward.toFixed(2):'—';$('rr').textContent=valid?(reward/risk).toFixed(2)+':1':'—';$('cashRisk').textContent=valid?'$'+(b*rp/100).toFixed(2):'—';$('setupCheck').textContent=valid?'Setup levels are logically valid. Cash risk is '+(b*rp/100).toFixed(2)+' in account currency.':'Check that Buy uses SL below entry and TP above entry, or Sell uses SL above entry and TP below entry.';return valid?{e,s,t,side,risk,reward,rr:reward/risk,riskCash:b*rp/100}:null}
 function drawLines(){if(!candleSeries)return;lines.forEach(x=>{try{candleSeries.removePriceLine(x)}catch(e){}});lines=[];let e=calc();if(!e)return;for(let [price,title,color] of [[e.e,'ENTRY','#d8ad55'],[e.s,'STOP LOSS','#f06c78'],[e.t,'TAKE PROFIT','#26bd8a']])lines.push(candleSeries.createPriceLine({price,title,color,lineWidth:2,axisLabelVisible:true}))}
 function drawEquityCurve(){
