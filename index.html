@@ -21,6 +21,14 @@ main{max-width:1280px;margin:auto;padding:18px;display:grid;grid-template-column
  <div class="controls"><button id="back">◀ Previous</button><button class="primary" id="forward">Next candle ▶</button><button id="play">▶ Play</button><button id="restart">Restart</button></div>
  <div class="hint" id="replayStatus">Import historical candles, then reveal them one by one to avoid seeing future price action.</div>
 </section>
+<section class="card wide" id="live-xauusd">
+ <div class="heading"><div><h2>Live XAUUSD · TradingView</h2><div class="muted">Live market view · OANDA spot gold feed · 1-minute chart</div></div><span class="tag">LIVE VIEW</span></div>
+ <p class="hint">This is TradingView's embedded XAUUSD chart. It updates independently from your historical replay and does not overwrite your imported January 2025 candles.</p>
+ <div style="position:relative;width:100%;height:520px;border:1px solid var(--line);border-radius:10px;overflow:hidden">
+  <iframe title="TradingView live XAUUSD chart" src="https://www.tradingview.com/widgetembed/?symbol=OANDA%3AXAUUSD&interval=1&theme=dark&style=1&locale=en&toolbar_bg=%23080a0f&enable_publishing=false&allow_symbol_change=true&save_image=false&hideideas=true&withdateranges=true&hide_side_toolbar=false&details=true&hotlist=false&calendar=false" style="width:100%;height:100%;border:0" loading="lazy" allowfullscreen></iframe>
+ </div>
+ <div class="hint">Feed note: TradingView's default XAUUSD page uses OANDA. If your own TradingView chart uses another provider, its candle prices may differ slightly.</div>
+</section>
 <section class="card wide" id="import-section">
  <h2>Import past market candles</h2>
  <p class="muted">A CSV is a simple spreadsheet-style file containing past candle prices. It lets you replay real market history instead of relying on practice data.</p>
