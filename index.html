@@ -120,7 +120,7 @@ function parseCSV(text){
   const rawTime=combinedIx>=0?r[combinedIx]:timeIx>=0?r[timeIx]:r[dateIx];
   const dateTime=dateIx>=0&&timeIx>=0&&dateIx!==timeIx?(String(r[dateIx]||'')+' '+String(r[timeIx]||'' )).trim():rawTime;
   const time=dateValue(dateTime),open=number(r[oi]),high=number(r[hi]),low=number(r[li]),close=number(r[ci]),volume=vi>=0?number(r[vi]):0;
-  if(time!==null&&[open,high,low,close].every(Number.isFinite)&&high>=Math.max(open,close,low)&&low<=Math.min(open,close,high))out.push({time,open,high,low,close,volume:Number.isFinite(volume)?volume:0});else invalid++;
+  if(time!==null&&[open,high,low,close].every(Number.isFinite)&&high>=Math.max(open,close,low)&&low<=Math.min(open,close,high)){if(high===low&&open===close){invalid++;continue}out.push({time,open,high,low,close,volume:Number.isFinite(volume)?volume:0})}else invalid++;
  }
  out.sort((a,b)=>a.time-b.time);
  const before=out.length;out=out.filter((x,i)=>!i||x.time!==out[i-1].time);const duplicates=before-out.length;
