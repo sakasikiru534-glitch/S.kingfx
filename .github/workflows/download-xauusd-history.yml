@@ -1,0 +1,53 @@
+name: Download XAUUSD historical candles
+
+on:
+  workflow_dispatch:
+    inputs:
+      date_from:
+        description: "Start date (YYYY-MM-DD, UTC)"
+        required: true
+        default: "2025-01-01"
+        type: string
+      date_to:
+        description: "End date (YYYY-MM-DD, UTC; exclusive)"
+        required: true
+        default: "2025-02-01"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Dukascopy downloader and browser
+        run: |
+          npx --yes dukascopy-node --install-browser --with-deps
+
+      - name: Download XAUUSD 1-minute candles
+        run: |
+          npx --yes dukascopy-node -i xauusd -from "${{ inputs.date_from }}" -to "${{ inputs.date_to }}" -t m1 -f csv -dir ./download/m1 -bs 3 -bp 2000 -r 3 -re
+
+      - name: Download XAUUSD 5-minute candles
+        run: |
+          npx --yes dukascopy-node -i xauusd -from "${{ inputs.date_from }}" -to "${{ inputs.date_to }}" -t m5 -f csv -dir ./download/m5 -bs 3 -bp 2000 -r 3 -re
+
+      - name: Check downloaded CSV files
+        run: |
+          find ./download -type f -name "*.csv" -size +100c -print
+          test "$(find ./download -type f -name "*.csv" -size +100c | wc -l)" -ge 2
+
+      - name: Upload M1 and M5 CSV files
+        uses: actions/upload-artifact@v4
+        with:
+          name: xauusd-historical-csv
+          path: download/**/*.csv
+          if-no-files-found: error
+          retention-days: 7

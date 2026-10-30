@@ -1,105 +1,238 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>S.KingFx Lab — Gold Backtest</title>
-<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080a0f">
+<title>S.KingFx Lab — Custom Strategy Backtesting</title>
+<script src="https://unpkg.com/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js"></script>
 <style>
-:root{color-scheme:dark;--bg:#080a0f;--panel:#11151d;--line:#242b38;--text:#e8edf5;--muted:#98a4b7;--gold:#d9ad4c;--green:#21b889;--red:#f06470}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-header{padding:16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}
-.brand{font-weight:800;letter-spacing:.3px}.brand span{color:var(--gold)}.pill{font-size:11px;color:var(--gold);border:1px solid #594822;border-radius:20px;padding:5px 8px}
-main{max-width:1100px;margin:auto;padding:12px;display:grid;gap:12px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px;min-width:0}
-.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.muted{color:var(--muted);font-size:12px}
-h2{font-size:16px;margin:0 0 8px}.price{font-size:22px;font-weight:750;color:var(--gold)}
-.controls{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
-button,select,input{font:inherit;background:#0b0e14;color:var(--text);border:1px solid #30394a;border-radius:9px;padding:10px;min-height:40px}
-button{cursor:pointer}button.active,button.primary{background:#3a2d12;border-color:var(--gold);color:#ffe2a0}
-button:disabled{opacity:.4;cursor:not-allowed}
-#chart{height:340px;width:100%;margin-top:8px}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}input{width:100%}
-.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.metric{background:#0b0e14;border:1px solid var(--line);border-radius:10px;padding:10px}.metric b{display:block;font-size:18px;margin-top:4px}
-.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.note{font-size:12px;line-height:1.5;color:var(--muted)}
-table{border-collapse:collapse;width:100%;font-size:12px}td,th{text-align:left;padding:8px;border-bottom:1px solid var(--line)}.scroll{overflow:auto}
-footer{padding:4px 2px 20px;color:var(--muted);font-size:11px}
-@media(min-width:800px){main{grid-template-columns:1.6fr 1fr}.wide{grid-column:1/-1}#chart{height:460px}.metrics{grid-template-columns:repeat(4,minmax(0,1fr))}}
-@media(max-width:380px){#chart{height:290px}.grid{grid-template-columns:1fr}}
-</style>
-</head>
+:root{color-scheme:dark;--bg:#080a0f;--panel:#11151d;--panel2:#0c1017;--line:#252d3b;--text:#edf1f7;--muted:#96a2b5;--gold:#d8ad55;--green:#26bd8a;--red:#f06c78}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px Inter,system-ui,Arial,sans-serif}header{height:66px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 18px;position:sticky;top:0;background:#090c12;z-index:4}.brand{font-size:19px;font-weight:850;letter-spacing:.2px}.brand span{color:var(--gold)}.tag{border:1px solid #574523;color:#f1ce82;border-radius:30px;padding:6px 10px;font-size:10px;letter-spacing:1px}
+main{max-width:1280px;margin:auto;padding:18px;display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:15px;min-width:0}.wide{grid-column:1/-1}.heading{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}h1,h2,h3,p{margin-top:0}h2{font-size:16px;margin-bottom:5px}h3{font-size:13px;margin:0 0 12px}.muted,.hint{color:var(--muted);font-size:12px;line-height:1.5}.price{font-size:24px;color:var(--gold);font-weight:800}.controls{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}button,input,select,textarea{font:inherit;color:var(--text);background:var(--panel2);border:1px solid #30394a;border-radius:9px;padding:10px;min-height:40px}button{cursor:pointer}button:hover{border-color:var(--gold)}button.primary{background:#382d17;border-color:var(--gold);color:#ffe2a0}button:disabled{opacity:.35;cursor:not-allowed}.active{border-color:var(--gold);color:var(--gold)}#chart{height:390px;width:100%;margin-top:8px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}label{display:block;color:var(--muted);font-size:11px;margin:0 0 5px}input,select,textarea{width:100%}.field{min-width:0}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.metric{background:var(--panel2);border:1px solid var(--line);padding:11px;border-radius:10px;min-width:0}.metric small{color:var(--muted);font-size:11px}.metric b{display:block;font-size:18px;margin-top:5px;overflow-wrap:anywhere}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}td,th{text-align:left;padding:10px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-weight:600}.positive{color:var(--green)}.negative{color:var(--red)}.notice{border:1px solid #554522;background:#19150d;color:#e8d29d;padding:10px;border-radius:10px;font-size:12px;line-height:1.5}.file{display:none}.footer{grid-column:1/-1;color:var(--muted);font-size:11px;padding:0 3px 22px}.smallbtn{padding:7px 9px;min-height:32px;font-size:12px}
+@media(max-width:850px){main{grid-template-columns:1fr;padding:10px}.wide,.footer{grid-column:auto}#chart{height:330px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:390px){header{padding:0 11px}.tag{font-size:9px}#chart{height:280px}.grid,.two{grid-template-columns:1fr}}
+</style></head>
 <body>
-<header><div class="brand">S.King<span>Fx</span> Lab</div><div class="pill">DEMO BACKTEST · NO LIVE ORDERS</div></header>
+<header><div class="brand">S.King<span>Fx</span> Lab</div><div class="tag">CUSTOM STRATEGY BACKTEST STUDIO</div></header>
 <main>
 <section class="card">
- <div class="top"><div><h2>XAUUSD · Gold / USD</h2><div class="muted">Starter chart · example candles are simulated</div></div><div class="price" id="price">$2,350.00</div></div>
- <div class="controls" id="tf"><button class="active" data-tf="5">M5</button><button data-tf="15">M15</button><button data-tf="60">H1</button><button data-tf="240">H4</button></div>
+ <div class="heading"><div><h2>XAUUSD · Gold / US Dollar</h2><div class="muted" id="dataStatus">Load your own historical CSV data to begin</div></div><div class="price" id="lastPrice">—</div></div>
+ <div class="controls" id="timeframes" aria-label="Chart timeframe"><button data-tf="60">1m</button><button data-tf="300">5m</button><button class="active" data-tf="900">15m</button><button data-tf="1800">30m</button><button data-tf="3600">1H</button><button data-tf="14400">4H</button><button data-tf="86400">1D</button><button data-tf="604800">1W</button></div><div class="hint" id="tfStatus">Choose a timeframe. Available choices depend on the imported candle data.</div>
  <div id="chart"></div>
- <div class="controls"><button id="prev">◀ Previous candle</button><button id="next" class="primary">Next candle ▶</button><button id="reset">Reset replay</button></div>
- <div class="note" id="replayInfo">Replay starts with a small historical window. Step forward one candle at a time to practice decisions.</div>
+ <div class="controls"><button id="back">◀ Previous</button><button class="primary" id="forward">Next candle ▶</button><button id="play">▶ Play</button><button id="restart">Restart</button></div>
+ <div class="hint" id="replayStatus">Import historical candles, then reveal them one by one to avoid seeing future price action.</div>
 </section>
-<section class="card">
- <h2>Trade simulator</h2>
- <p class="muted">Enter prices based on the candle you can currently see. No real orders are sent.</p>
+<section class="card wide" id="import-section">
+ <h2>Import past market candles</h2>
+ <p class="muted">A CSV is a simple spreadsheet-style file containing past candle prices. It lets you replay real market history instead of relying on practice data.</p>
+ <div class="notice"><b>Your file should contain:</b> Date/Time, Open, High, Low and Close. Volume is optional. Each row should represent one candle.</div>
+ <input class="file" id="csvFile" type="file" accept=".csv,text/csv">
+ <div class="controls"><button class="primary" id="chooseCsv">Choose CSV file</button><button id="downloadCsvExample">Download format example</button><button id="sample">Load sample practice data</button></div>
+ <div class="hint">The format example only shows how columns should look; it is NOT real XAUUSD history. Use genuine historical XAUUSD data for a meaningful backtest. The importer recognises comma, semicolon and tab-separated files; common Date/Time or separate Date + Time columns; and common OHLCV heading variations. Invalid rows and duplicate timestamps are skipped and reported.</div>
+ <div class="hint" id="importHelp" role="status">No file imported yet. Your imported candles and journal stay in this browser.</div>
+ <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+ <h2>Trade planner</h2>
  <div class="grid">
-  <div><label for="side">Direction</label><select id="side"><option value="buy">Buy</option><option value="sell">Sell</option></select></div>
-  <div><label for="entry">Entry price</label><input id="entry" type="number" step=".01" value="2350"></div>
-  <div><label for="sl">Stop loss</label><input id="sl" type="number" step=".01" value="2345"></div>
-  <div><label for="tp">Take profit</label><input id="tp" type="number" step=".01" value="2360"></div>
+  <div class="field"><label>Direction</label><select id="side"><option value="buy">Buy</option><option value="sell">Sell</option></select></div>
+  <div class="field"><label>Your risk per trade (%)</label><input id="riskPct" type="number" value="0.5" min="0.01" step="0.01"></div>
+  <div class="field"><label>Your daily trade limit (0 = no limit)</label><input id="dailyLimit" type="number" value="0" min="0" step="1"></div>
+  <div class="field"><label>Account balance ($)</label><input id="balance" type="number" value="1000" min="0" step="1"></div>
+  <div class="field"><label>Entry price</label><input id="entry" type="number" step="0.01" placeholder="Entry"></div>
+  <div class="field"><label>Stop loss</label><input id="sl" type="number" step="0.01" placeholder="Stop loss"></div>
+  <div class="field"><label>Take profit</label><input id="tp" type="number" step="0.01" placeholder="Take profit"></div>
  </div>
- <div class="controls"><button id="calc" class="primary">Calculate risk : reward</button><button id="mark">Mark entry on chart</button></div>
+ <div class="controls"><button class="primary" id="calculate">Calculate setup</button><button id="mark">Mark levels</button></div>
  <div class="metrics">
-  <div class="metric"><span class="muted">Risk distance</span><b id="risk">—</b></div>
-  <div class="metric"><span class="muted">Reward distance</span><b id="reward">—</b></div>
-  <div class="metric"><span class="muted">Risk : reward</span><b id="rr">—</b></div>
-  <div class="metric"><span class="muted">Setup check</span><b id="valid" style="font-size:14px">—</b></div>
+  <div class="metric"><small>Risk distance</small><b id="riskDist">—</b></div><div class="metric"><small>Reward distance</small><b id="rewardDist">—</b></div><div class="metric"><small>Risk : Reward</small><b id="rr">—</b></div><div class="metric"><small>Cash risk</small><b id="cashRisk">—</b></div>
  </div>
- <p class="note">Distance is shown in gold price units, not account-currency profit. Contract size, lot size, spread, commission and slippage vary by broker.</p>
+ <h3 style="margin-top:18px">My setup checklist</h3>
+ <p class="hint">Build this around your own strategy. These checks are optional notes for your process, not universal trading rules.</p>
+ <div class="controls"><input id="newQualityItem" style="flex:1;min-width:180px" placeholder="Add a condition for my strategy"><button id="addQualityItem" class="smallbtn">Add condition</button><button id="starterChecklist" class="smallbtn">Load starter template</button><button id="clearChecklist" class="smallbtn">Clear all</button></div>
+ <div class="grid" id="qualityChecklist"></div>
+ <div class="metrics" style="margin-top:10px">
+  <div class="metric"><small>Checklist score</small><b id="qualityScore">Not used</b></div>
+  <div class="metric"><small>Conditions met</small><b id="qualityGrade">—</b></div>
+ </div>
+ <div class="hint" id="qualityAdvice">Add your own conditions, or leave the checklist empty if you do not use one.</div>
+ <p class="hint" id="setupCheck">Enter your levels and calculate. Cash risk is an estimate and does not calculate gold lot size or broker contract specifications.</p>
 </section>
 <section class="card wide">
- <div class="top"><h2>Backtest log</h2><button id="clear">Clear log</button></div>
- <p class="muted">Use “Record outcome” after reviewing a completed historical setup. Results are educational, not proof of future profitability.</p>
- <div class="controls"><button id="win">Record win</button><button id="loss">Record loss</button><button id="be">Record breakeven</button></div>
- <div class="metrics">
-  <div class="metric"><span class="muted">Trades recorded</span><b id="trades">0</b></div>
-  <div class="metric"><span class="muted">Wins / losses</span><b id="wl">0 / 0</b></div>
-  <div class="metric"><span class="muted">Win rate</span><b id="wr">—</b></div>
-  <div class="metric"><span class="muted">Net R (manual)</span><b id="netr">0.00R</b></div>
+ <div class="heading"><div><h2>Trade journal</h2><div class="muted">Record only after the replay has shown the outcome.</div></div><button class="smallbtn" id="export">Export journal CSV</button></div>
+ <div class="grid" style="max-width:850px;margin:14px 0">
+  <div class="field"><label>Setup / strategy name</label><input id="strategy" placeholder="e.g. London sweep + confirmation"></div>
+  <div class="field"><label>Trading session (choose manually)</label><select id="session"><option value="London">London</option><option value="New York">New York</option><option value="Asia">Asia</option><option value="Other">Other</option></select></div>
+  <div class="field"><label>Trade note</label><input id="note" placeholder="Why did you take this setup?"></div>
+  <div class="field"><label>Checklist result</label><input id="qualitySaved" readonly value="0/8 · Not rated"></div>
  </div>
- <div class="scroll" style="margin-top:12px"><table><thead><tr><th>#</th><th>Replay candle</th><th>Outcome</th><th>R result</th></tr></thead><tbody id="log"><tr><td colspan="4" class="muted">No trades recorded yet.</td></tr></tbody></table></div>
+ <div class="controls"><button id="recordWin" class="primary">Record win</button><button id="recordLoss">Record loss</button><button id="recordBE">Record breakeven</button></div>
+ <div class="metrics">
+  <div class="metric"><small>Total trades</small><b id="totalTrades">0</b></div><div class="metric"><small>Win rate</small><b id="winRate">—</b></div><div class="metric"><small>Net result</small><b id="netR">0.00R</b></div><div class="metric"><small>Profit factor</small><b id="profitFactor">—</b></div>
+ </div>
+ <div class="metrics" style="margin-top:10px">
+  <div class="metric"><small>Average result / trade</small><b id="avgR">—</b></div><div class="metric"><small>Expectancy</small><b id="expectancy">—</b></div><div class="metric"><small>Max drawdown</small><b id="maxDD">0.00R</b></div><div class="metric"><small>Longest losing streak</small><b id="losingStreak">0</b></div>
+ </div>
+ <div class="metrics" style="margin-top:8px">
+  <div class="metric"><small>Average winning trade</small><b id="avgWin">—</b></div><div class="metric"><small>Average losing trade</small><b id="avgLoss">—</b></div><div class="metric"><small>Best trade</small><b id="bestTrade">—</b></div><div class="metric"><small>Worst trade</small><b id="worstTrade">—</b></div>
+ </div>
+ <div class="notice" style="margin-top:12px">Daily trade count · Based on the limit you choose in Trade Planner. <b id="dailyDiscipline">No trades recorded yet.</b></div>
+ <h3 style="margin-top:18px">Strategy breakdown</h3>
+ <div class="tablewrap"><table><thead><tr><th>Strategy</th><th>Trades</th><th>Win rate</th><th>Net R</th><th>Average R</th></tr></thead><tbody id="strategyRows"><tr><td colspan="5" class="muted">Add journal entries with strategy names to compare setups.</td></tr></tbody></table></div>
+ <h3 style="margin-top:18px">Equity curve · cumulative R</h3>
+ <p class="hint">Each point adds the next recorded trade result to the previous total. This is measured in R, not account currency, and follows journal order.</p>
+ <div id="equityChart" style="height:230px;width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;overflow:hidden"></div>
+ <div class="two" style="margin-top:16px">
+  <div><h3>Buy vs sell performance</h3><div class="tablewrap"><table><thead><tr><th>Direction</th><th>Trades</th><th>Win rate</th><th>Net R</th></tr></thead><tbody id="sideRows"><tr><td colspan="4">No data yet.</td></tr></tbody></table></div></div>
+  <div><h3>Session performance</h3><div class="tablewrap"><table><thead><tr><th>Session</th><th>Trades</th><th>Win rate</th><th>Net R</th></tr></thead><tbody id="sessionRows"><tr><td colspan="4">No data yet.</td></tr></tbody></table></div></div>
+ </div>
+ <h3 style="margin-top:18px">Trade history</h3>
+ <div class="tablewrap" style="margin-top:14px"><table><thead><tr><th>Date / candle</th><th>Side</th><th>Strategy</th><th>Outcome</th><th>Quality</th><th>R</th><th>Note</th><th></th></tr></thead><tbody id="journalRows"><tr><td colspan="7" class="muted">No journal entries yet.</td></tr></tbody></table></div>
+ <div class="controls"><button id="clearJournal" class="smallbtn">Clear journal</button><button id="backup" class="smallbtn">Download backup</button><label for="restoreFile" class="smallbtn" style="border:1px solid #30394a;border-radius:9px;padding:8px;cursor:pointer">Restore backup</label><input id="restoreFile" class="file" type="file" accept=".json,application/json"></div>
 </section>
-<footer class="wide">Starter prototype by S.KingFx Lab. Chart library: TradingView Lightweight Charts (Apache 2.0; attribution required). Example candles are randomly generated for interface testing only, not real XAUUSD prices. Internet is required to load the chart library from its CDN. Do not use for live trading.</footer>
+<div class="footer">S.KingFx Lab · Educational backtesting tool. Imported data and journal are stored locally in this browser; clearing browser data may erase them. This prototype does not provide cloud accounts, shared user profiles, live broker prices or order execution. Historical results do not guarantee future performance.</div>
 </main>
 <script>
 (function(){
-const $=id=>document.getElementById(id);
-let all=[],visible=30,tf=5,logs=[],series,chart,markers=[];
-function makeData(){
- let p=2350, t=Math.floor(Date.UTC(2025,0,2,0,0)/1000), arr=[];
- for(let i=0;i<260;i++){let o=p, drift=(Math.random()-.49)*3.8, c=Math.max(1,o+drift), h=Math.max(o,c)+Math.random()*1.8, l=Math.min(o,c)-Math.random()*1.8;
- arr.push({time:t,open:+o.toFixed(2),high:+h.toFixed(2),low:+l.toFixed(2),close:+c.toFixed(2)});p=c;t+=tf*60;}
- return arr;
+const $=id=>document.getElementById(id);let bars=[],viewBars=[],shown=0,selectedTf=900,chart=null,candleSeries=null,playing=false,playTimer=null,journal=[];let lines=[],chartFitted=false;
+const STORE='skingfx-lab-journal-v2', SETTINGS='skingfx-lab-settings-v1';
+const STARTER_CHECKS=['Clear higher-timeframe direction or a documented reason to trade against it','Price is at a level or area marked before the entry','A clear entry trigger / confirmation has appeared','Stop loss is beyond a logical invalidation point','Take profit is planned at a realistic target','Position risk is within my chosen risk plan','This trade is within my chosen daily trade limit','No major news or unusual volatility risk has been ignored'];
+let settings={checks:[],dailyLimit:0,riskPct:0.5};
+try{const saved=JSON.parse(localStorage.getItem(SETTINGS)||'null');if(saved&&typeof saved==='object'){if(Array.isArray(saved.checks))settings.checks=saved.checks.filter(x=>x&&typeof x.text==='string').map((x,i)=>({id:String(x.id||('custom-'+i)),text:x.text}));if(Number.isFinite(Number(saved.dailyLimit)))settings.dailyLimit=Math.max(0,Math.floor(Number(saved.dailyLimit)));if(Number.isFinite(Number(saved.riskPct))&&Number(saved.riskPct)>0)settings.riskPct=Number(saved.riskPct)}}catch(e){}
+
+try{journal=JSON.parse(localStorage.getItem(STORE)||'[]');if(!Array.isArray(journal))journal=[]}catch(e){journal=[]}
+function persist(){try{localStorage.setItem(STORE,JSON.stringify(journal));localStorage.setItem(SETTINGS,JSON.stringify(settings))}catch(e){alert('Browser storage is full. Please export a backup.')}} 
+function dateValue(v){if(v===undefined||v===null||v==='')return null;let s=String(v).trim();if(/^\d{10,13}$/.test(s)){let n=Number(s);return Math.floor(n>1e12?n/1000:n)}let d=new Date(s.replace(/\./g,'-'));if(Number.isNaN(d.getTime()))return null;return Math.floor(d.getTime()/1000)}
+function parseCSV(text){
+ text=String(text||'').replace(/^\uFEFF/,'').trim();
+ if(!text)throw Error('The selected file is empty.');
+ const firstLine=text.split(/\r?\n/,1)[0],counts=[',',';','\\t'].map(d=>({d,n:(firstLine.match(new RegExp(d==='\\t'?'\\\\t':d===';'?';':',','g'))||[]).length})).sort((a,b)=>b.n-a.n),delimiter=counts[0].n?counts[0].d:',';
+ const rows=text.split(/\r?\n/).filter(x=>x.trim()).map(line=>{let a=[],v='',q=false;for(let i=0;i<line.length;i++){let ch=line[i];if(ch==='"'&&line[i+1]==='"'&&q){v+='"';i++}else if(ch==='"')q=!q;else if(ch===delimiter&&!q){a.push(v.trim());v=''}else v+=ch}a.push(v.trim());return a});
+ if(rows.length<2)throw Error('CSV needs a header row and at least one candle.');
+ const h=rows[0].map(x=>x.toLowerCase().replace(/[^a-z0-9]/g,''));
+ const ix=names=>h.findIndex(x=>names.includes(x));
+ const oi=ix(['open','op']),hi=ix(['high','hi']),li=ix(['low','lo']),ci=ix(['close','closingprice','last']);
+ const dateIx=ix(['date','day']),timeIx=ix(['time','gmt time','gmttime','localtime','datetime','timestamp','date time','datatime'].map(x=>x.replace(/[^a-z0-9]/g,'')));
+ const combinedIx=ix(['datetime','timestamp','gmttime','localtime','datetimestamp']);
+ const vi=ix(['volume','tickvolume','tickvol','vol']);
+ if([oi,hi,li,ci].some(x=>x<0))throw Error('I found the file, but its headings must include Open, High, Low and Close.');
+ if(combinedIx<0&&dateIx<0&&timeIx<0)throw Error('I could not find a Date/Time column. Include a date, timestamp or separate Date and Time columns.');
+ const number=(v)=>{let n=Number(String(v??'').replace(/,/g,'').trim());return Number.isFinite(n)?n:NaN};
+ let out=[],invalid=0;
+ for(const r of rows.slice(1)){
+  const rawTime=combinedIx>=0?r[combinedIx]:timeIx>=0?r[timeIx]:r[dateIx];
+  const dateTime=dateIx>=0&&timeIx>=0&&dateIx!==timeIx?(String(r[dateIx]||'')+' '+String(r[timeIx]||'' )).trim():rawTime;
+  const time=dateValue(dateTime),open=number(r[oi]),high=number(r[hi]),low=number(r[li]),close=number(r[ci]),volume=vi>=0?number(r[vi]):0;
+  if(time!==null&&[open,high,low,close].every(Number.isFinite)&&high>=Math.max(open,close,low)&&low<=Math.min(open,close,high))out.push({time,open,high,low,close,volume:Number.isFinite(volume)?volume:0});else invalid++;
+ }
+ out.sort((a,b)=>a.time-b.time);
+ const before=out.length;out=out.filter((x,i)=>!i||x.time!==out[i-1].time);const duplicates=before-out.length;
+ if(out.length<2)throw Error('I could not find at least two valid candles. Check that the file contains actual price rows, not an empty sample or JSON data.');
+ out.importReport={invalid,duplicates,delimiter:delimiter==='\\t'?'tab':delimiter,sourceRows:rows.length-1};
+ return out
 }
-function init(){
- if(!window.LightweightCharts){$('chart').innerHTML='<p class="note">Chart library could not load. Check your internet connection and refresh.</p>';return;}
- chart=LightweightCharts.createChart($('chart'),{layout:{background:{type:'solid',color:'#11151d'},textColor:'#98a4b7'},grid:{vertLines:{color:'#202633'},horzLines:{color:'#202633'}},rightPriceScale:{borderColor:'#30394a'},timeScale:{borderColor:'#30394a',timeVisible:true,secondsVisible:false},crosshair:{mode:0}});
- series=chart.addSeries(LightweightCharts.CandlestickSeries,{upColor:'#21b889',downColor:'#f06470',borderVisible:false,wickUpColor:'#21b889',wickDownColor:'#f06470'});
- all=makeData();render();
- new ResizeObserver(()=>chart.applyOptions({width:$('chart').clientWidth,height:$('chart').clientHeight})).observe($('chart'));
+function sampleData(){let p=2350,t=Date.UTC(2025,0,2)/1000,a=[];for(let i=0;i<240;i++){let o=p,c=o+(Math.random()-.49)*4,h=Math.max(o,c)+Math.random()*1.5,l=Math.min(o,c)-Math.random()*1.5;a.push({time:t,open:+o.toFixed(2),high:+h.toFixed(2),low:+l.toFixed(2),close:+c.toFixed(2)});p=c;t+=300}return a}
+function stopPlay(){playing=false;clearInterval(playTimer);$('play').textContent='▶ Play'}
+function initChart(){
+ const host=$('chart');
+ function buildChart(){
+  if(!window.LightweightCharts){host.innerHTML='<div class="notice">Chart library could not load. Check your connection and refresh.</div>';return}
+  try{
+   chart=LightweightCharts.createChart(host,{width:Math.max(320,host.clientWidth),height:host.clientHeight||330,layout:{background:{type:'solid',color:'#11151d'},textColor:'#96a2b5'},grid:{vertLines:{color:'#202633'},horzLines:{color:'#202633'}},rightPriceScale:{borderColor:'#30394a'},timeScale:{borderColor:'#30394a',timeVisible:true},crosshair:{mode:0}});
+   candleSeries=chart.addSeries(LightweightCharts.CandlestickSeries,{upColor:'#26bd8a',downColor:'#f06c78',borderVisible:false,wickUpColor:'#26bd8a',wickDownColor:'#f06c78'});
+   new ResizeObserver(()=>{if(chart)chart.applyOptions({width:Math.max(320,host.clientWidth),height:host.clientHeight||330})}).observe(host);
+   render();
+  }catch(err){host.innerHTML='<div class="notice">Chart error: '+String(err.message||err)+'</div>'}
+ }
+ if(window.LightweightCharts){buildChart();return}
+ host.innerHTML='<div class="notice">Loading chart tools…</div>';
+ const fallback=document.createElement('script');
+ fallback.src='https://cdn.jsdelivr.net/npm/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js';
+ fallback.onload=buildChart;
+ fallback.onerror=()=>{host.innerHTML='<div class="notice">Chart tools did not load. Please check your internet connection and reopen the page.</div>'};
+ document.head.appendChild(fallback);
 }
-function render(){if(!series)return;series.setData(all.slice(0,visible));chart.timeScale().fitContent();const c=all[Math.max(0,visible-1)];$('price').textContent='$'+c.close.toFixed(2);$('replayInfo').textContent=`Showing ${visible} of ${all.length} simulated candles · ${tf===60?'H1':tf===240?'H4':'M'+tf} · Candle ${visible}`;$('prev').disabled=visible<=1;$('next').disabled=visible>=all.length;}
-function updateStats(){let w=logs.filter(x=>x.out==='Win').length,l=logs.filter(x=>x.out==='Loss').length,net=logs.reduce((a,x)=>a+x.r,0);$('trades').textContent=logs.length;$('wl').textContent=`${w} / ${l}`;$('wr').textContent=logs.length?Math.round(w/logs.length*100)+'%':'—';$('netr').textContent=net.toFixed(2)+'R';$('log').innerHTML=logs.length?logs.slice().reverse().map((x,i)=>`<tr><td>${logs.length-i}</td><td>${x.candle}</td><td>${x.out}</td><td>${x.r.toFixed(2)}R</td></tr>`).join(''):'<tr><td colspan="4" class="muted">No trades recorded yet.</td></tr>';}
-function calculate(){let e=+$('entry').value,s=+$('sl').value,t=+$('tp').value,side=$('side').value;let r=Math.abs(e-s),rew=Math.abs(t-e),valid=side==='buy'?(s<e&&t>e):(s>e&&t<e);$('risk').textContent=r.toFixed(2);$('reward').textContent=rew.toFixed(2);$('rr').textContent=r>0?(rew/r).toFixed(2)+':1':'—';$('valid').textContent=valid&&r>0?'Valid geometry':'Check levels';$('valid').style.color=valid&&r>0?'#21b889':'#f06470';return {e,s,t,valid:valid&&r>0};}
-$('prev').onclick=()=>{visible=Math.max(1,visible-1);render()};$('next').onclick=()=>{visible=Math.min(all.length,visible+1);render()};$('reset').onclick=()=>{visible=30;render()};
-$('tf').querySelectorAll('button').forEach(b=>b.onclick=()=>{tf=+b.dataset.tf;$('tf').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));all=makeData();visible=30;render();});
-$('calc').onclick=calculate;$('mark').onclick=()=>{if(!series)return;let q=calculate();if(!q.valid){alert('Please check entry, stop-loss and take-profit for the selected direction.');return;}series.createPriceLine({price:q.e,color:'#d9ad4c',lineWidth:2,lineStyle:2,axisLabelVisible:true,title:'Entry'});};
-function record(out){let q=calculate();if(!q.valid){alert('Check your entry, stop-loss and take-profit first.');return;}let r=out==='Win'?Math.abs(q.t-q.e)/Math.abs(q.e-q.s):out==='Loss'?-1:0;logs.push({out,r,candle:visible});updateStats();}
-$('win').onclick=()=>record('Win');$('loss').onclick=()=>record('Loss');$('be').onclick=()=>record('Breakeven');$('clear').onclick=()=>{if(confirm('Clear all recorded outcomes?')){logs=[];updateStats();}};
-init();calculate();
+function timeframeLabel(seconds){return ({60:"1m",300:"5m",900:"15m",1800:"30m",3600:"1H",14400:"4H",86400:"1D",604800:"1W"})[seconds]||seconds+"s"}
+function bucketTime(time,seconds){if(seconds===604800){let d=new Date(time*1000),day=(d.getUTCDay()+6)%7;d.setUTCDate(d.getUTCDate()-day);d.setUTCHours(0,0,0,0);return Math.floor(d.getTime()/1000)}return Math.floor(time/seconds)*seconds}
+function aggregateData(data,seconds){let out=[];for(const b of data){let t=bucketTime(b.time,seconds),last=out[out.length-1];if(last&&last.time===t){last.high=Math.max(last.high,b.high);last.low=Math.min(last.low,b.low);last.close=b.close;last.volume=(last.volume||0)+(b.volume||0)}else out.push({time:t,open:b.open,high:b.high,low:b.low,close:b.close,volume:b.volume||0})}return out}
+function baseInterval(data){if(data.length<2)return Infinity;let diffs=[];for(let i=1;i<Math.min(data.length,80);i++){let d=data[i].time-data[i-1].time;if(d>0)diffs.push(d)}diffs.sort((a,b)=>a-b);return diffs.length?diffs[Math.floor(diffs.length/2)]:Infinity}
+function setTimeframe(seconds){selectedTf=seconds;viewBars=aggregateData(bars,seconds);let base=baseInterval(bars),btns=[...$("timeframes").querySelectorAll("button")];btns.forEach(b=>{let tf=Number(b.dataset.tf);b.disabled=tf<base*0.9||!viewBars.length;b.classList.toggle("active",tf===seconds)});let active=btns.find(b=>Number(b.dataset.tf)===seconds);if(!active||active.disabled){let available=btns.find(b=>!b.disabled);if(available){selectedTf=Number(available.dataset.tf);viewBars=aggregateData(bars,selectedTf);btns.forEach(b=>b.classList.toggle("active",b===available))}}shown=Math.min(30,viewBars.length);chartFitted=false;$("tfStatus").textContent="Showing "+timeframeLabel(selectedTf)+" candles. "+(Number.isFinite(base)&&base>60?"Your source data is about "+timeframeLabel(base)+"; smaller timeframes cannot be recreated from it.":"Timeframes smaller than your source data are unavailable.");render()}
+function render(){if(!candleSeries||!viewBars.length)return;let data=viewBars.slice(0,shown);candleSeries.setData(data);let last=data[data.length-1];$("lastPrice").textContent=last?"$"+last.close.toFixed(2):"—";$("dataStatus").textContent=bars.length+" source candles · "+viewBars.length+" "+timeframeLabel(selectedTf)+" candles";$("replayStatus").textContent="Candle "+shown+" of "+viewBars.length+" · Future candles are hidden";$("back").disabled=shown<=1;$("forward").disabled=shown>=viewBars.length;if(data.length&&!chartFitted){chart.timeScale().fitContent();chartFitted=true}}
+function loadData(data){stopPlay();bars=data;setTimeframe(selectedTf);let interval=baseInterval(data),report=data.importReport;$('importHelp').textContent='Imported '+data.length+' valid candles successfully. Approximate source interval: '+(Number.isFinite(interval)?timeframeLabel(interval):'unknown')+'.'+(report?' Skipped '+report.invalid+' invalid rows and '+report.duplicates+' duplicate timestamps. Detected '+(report.delimiter==='tab'?'tab':report.delimiter===';'?'semicolon':'comma')+' separator.':'')+' Use a matching or larger timeframe for replay.'}
+function calc(){let e=Number($('entry').value),s=Number($('sl').value),t=Number($('tp').value),side=$('side').value,b=Number($('balance').value),rp=Number($('riskPct').value),valid=[e,s,t,b,rp].every(Number.isFinite)&&e>0&&b>0&&rp>0&&(side==='buy'?s<e&&t>e:s>e&&t<e),risk=Math.abs(e-s),reward=Math.abs(t-e);$('riskDist').textContent=valid?risk.toFixed(2):'—';$('rewardDist').textContent=valid?reward.toFixed(2):'—';$('rr').textContent=valid?(reward/risk).toFixed(2)+':1':'—';$('cashRisk').textContent=valid?'$'+(b*rp/100).toFixed(2):'—';$('setupCheck').textContent=valid?'Setup levels are logically valid. Cash risk is '+(b*rp/100).toFixed(2)+' in account currency.':'Check that Buy uses SL below entry and TP above entry, or Sell uses SL above entry and TP below entry.';return valid?{e,s,t,side,risk,reward,rr:reward/risk,riskCash:b*rp/100}:null}
+function drawLines(){if(!candleSeries)return;lines.forEach(x=>{try{candleSeries.removePriceLine(x)}catch(e){}});lines=[];let e=calc();if(!e)return;for(let [price,title,color] of [[e.e,'ENTRY','#d8ad55'],[e.s,'STOP LOSS','#f06c78'],[e.t,'TAKE PROFIT','#26bd8a']])lines.push(candleSeries.createPriceLine({price,title,color,lineWidth:2,axisLabelVisible:true}))}
+function drawEquityCurve(){
+ const host=$('equityChart');if(!host)return;
+ if(!window.LightweightCharts){host.textContent='Chart library unavailable.';return}
+ if(!journal.length){host.innerHTML='<div class="hint" style="padding:16px">Record trades to build your equity curve.</div>';return}
+ if(host._chart){host._chart.remove();host._chart=null}
+ const ec=LightweightCharts.createChart(host,{width:host.clientWidth,height:host.clientHeight,layout:{background:{type:'solid',color:'#0c1017'},textColor:'#96a2b5'},grid:{vertLines:{color:'#202633'},horzLines:{color:'#202633'}},rightPriceScale:{borderColor:'#30394a'},timeScale:{borderColor:'#30394a',timeVisible:false},crosshair:{mode:0}});
+ const series=ec.addSeries(LightweightCharts.LineSeries,{color:'#d8ad55',lineWidth:2,priceLineVisible:false,lastValueVisible:true});
+ let total=0,points=[{time:1,value:0}];
+ journal.forEach((x,i)=>{total+=Number(x.r)||0;points.push({time:i+2,value:Number(total.toFixed(4))})});
+ series.setData(points);ec.timeScale().fitContent();host._chart=ec;
+ if(host._resizeObserver)host._resizeObserver.disconnect();
+ host._resizeObserver=new ResizeObserver(()=>ec.applyOptions({width:host.clientWidth,height:host.clientHeight}));
+ host._resizeObserver.observe(host);
+}
+function stats(){
+ let wins=journal.filter(x=>x.outcome==='Win'),losses=journal.filter(x=>x.outcome==='Loss'),breakevens=journal.filter(x=>x.outcome==='Breakeven'),net=journal.reduce((a,x)=>a+x.r,0),grossWin=wins.reduce((a,x)=>a+x.r,0),grossLoss=Math.abs(losses.reduce((a,x)=>a+x.r,0)),avg=journal.length?net/journal.length:0;
+ let equity=0,peak=0,maxDD=0,streak=0,longest=0;
+ journal.forEach(x=>{equity+=x.r;peak=Math.max(peak,equity);maxDD=Math.max(maxDD,peak-equity);if(x.outcome==='Loss'){streak++;longest=Math.max(longest,streak)}else streak=0});
+ let best=journal.length?Math.max(...journal.map(x=>x.r)):null,worst=journal.length?Math.min(...journal.map(x=>x.r)):null;
+ let avgWin=wins.length?grossWin/wins.length:null,avgLoss=losses.length?losses.reduce((a,x)=>a+x.r,0)/losses.length:null;
+ $('totalTrades').textContent=journal.length;$('winRate').textContent=journal.length?(wins.length/journal.length*100).toFixed(1)+'%':'—';$('netR').textContent=net.toFixed(2)+'R';$('profitFactor').textContent=grossLoss?(grossWin/grossLoss).toFixed(2):grossWin?'∞':'—';
+ $('avgR').textContent=journal.length?avg.toFixed(2)+'R':'—';$('expectancy').textContent=journal.length?avg.toFixed(2)+'R':'—';$('maxDD').textContent=maxDD.toFixed(2)+'R';$('losingStreak').textContent=longest;
+ $('avgWin').textContent=avgWin===null?'—':avgWin.toFixed(2)+'R';$('avgLoss').textContent=avgLoss===null?'—':avgLoss.toFixed(2)+'R';$('bestTrade').textContent=best===null?'—':best.toFixed(2)+'R';$('worstTrade').textContent=worst===null?'—':worst.toFixed(2)+'R';
+ let days={};journal.forEach(x=>{let day=String(x.date||'').slice(0,10)||'Unknown';days[day]=(days[day]||0)+1});let counts=Object.values(days),maxDay=counts.length?Math.max(...counts):0,limit=settings.dailyLimit,over=limit>0?counts.filter(n=>n>limit).length:0;
+ $('dailyDiscipline').textContent=journal.length?(maxDay+' trades was your busiest day; '+(limit===0?'no daily limit is set.':over?over+' day(s) exceeded your '+limit+'-trade limit.':'no recorded day exceeded your '+limit+'-trade limit.')):'No trades recorded yet.';
+ let groups={};journal.forEach(x=>{let name=(x.strategy||'Unlabelled').trim()||'Unlabelled';if(!groups[name])groups[name]=[];groups[name].push(x)});
+ let entries=Object.entries(groups).sort((a,b)=>b[1].length-a[1].length);
+ $('strategyRows').innerHTML=entries.length?entries.map(([name,a])=>{let w=a.filter(x=>x.outcome==='Win').length,n=a.reduce((s,x)=>s+x.r,0);return '<tr><td>'+escapeHTML(name)+'</td><td>'+a.length+'</td><td>'+(w/a.length*100).toFixed(1)+'%</td><td>'+n.toFixed(2)+'R</td><td>'+(n/a.length).toFixed(2)+'R</td></tr>'}).join(''):'<tr><td colspan="5" class="muted">Add journal entries with strategy names to compare setups.</td></tr>';
+ const summarize=(items)=>{let keys=items.map(x=>x[0]);return keys.map(k=>{let a=items.find(x=>x[0]===k)[1],w=a.filter(x=>x.outcome==='Win').length,n=a.reduce((s,x)=>s+x.r,0);return '<tr><td>'+escapeHTML(k)+'</td><td>'+a.length+'</td><td>'+(w/a.length*100).toFixed(1)+'%</td><td>'+n.toFixed(2)+'R</td></tr>'}).join('')};
+ let sideGroups=['buy','sell'].map(k=>[k,journal.filter(x=>x.side===k)]).filter(x=>x[1].length);
+ $('sideRows').innerHTML=sideGroups.length?summarize(sideGroups):'<tr><td colspan="4" class="muted">No trades yet.</td></tr>';
+ let sessionMap={};journal.forEach(x=>{let k=x.session||'Unspecified';(sessionMap[k]||(sessionMap[k]=[])).push(x)});
+ let sessionGroups=Object.entries(sessionMap);
+ $('sessionRows').innerHTML=sessionGroups.length?summarize(sessionGroups):'<tr><td colspan="4" class="muted">No trades yet.</td></tr>';
+ drawEquityCurve();
+ $('journalRows').innerHTML=journal.length?journal.slice().reverse().map(x=>'<tr><td>'+escapeHTML(x.date)+'</td><td>'+escapeHTML(x.side)+'</td><td>'+escapeHTML(x.strategy||'—')+'</td><td class="'+(x.outcome==='Win'?'positive':x.outcome==='Loss'?'negative':'')+'">'+escapeHTML(x.outcome)+'</td><td>'+((Number.isFinite(x.quality)?x.quality+' / '+(x.qualityTotal||8):'—'))+'</td><td>'+x.r.toFixed(2)+'R</td><td>'+escapeHTML(x.note||'')+'</td><td><button class="smallbtn" data-delete="'+x.id+'">Delete</button></td></tr>').join(''):'<tr><td colspan="8" class="muted">No journal entries yet.</td></tr>';
+ persist()
+}
+function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function saveSettings(){try{localStorage.setItem(SETTINGS,JSON.stringify(settings))}catch(e){}}
+function renderChecklist(){
+ const host=$('qualityChecklist');if(!host)return;
+ host.innerHTML=settings.checks.map(item=>'<div style="display:flex;align-items:flex-start;gap:7px"><input type="checkbox" class="quality-check" data-check-id="'+escapeHTML(item.id)+'" style="width:auto;min-height:0;margin-top:2px"> <span style="flex:1">'+escapeHTML(item.text)+'</span><button type="button" class="smallbtn" data-remove-check="'+escapeHTML(item.id)+'" style="padding:3px 7px;min-height:25px">Remove</button></div>').join('')||'<div class="hint">No checklist conditions yet. Add your own, load the starter template, or leave it empty.</div>';
+ host.querySelectorAll('.quality-check').forEach(x=>x.addEventListener('change',qualityResult));
+ qualityResult();
+}
+function qualityResult(){
+ const checks=[...document.querySelectorAll('.quality-check')],total=checks.length,score=checks.filter(x=>x.checked).length;
+ const grade=total?(score+'/'+total):'Not used';
+ $('qualityScore').textContent=total?score+' / '+total:'Not used';$('qualityGrade').textContent=total?grade:'—';
+ $('qualityAdvice').textContent=total?(score===total?'All your conditions are ticked. This is a process note, not a prediction.':score+' of '+total+' conditions are ticked. Review the ones you left unchecked.'):'Your checklist is empty. You can still record trades normally.';
+ $('qualitySaved').value=total?score+'/'+total+' conditions':'Not used';
+ return {score,total,grade:total?grade:'Not used',items:settings.checks.map(item=>({text:item.text,checked:checks.some(x=>x.dataset.checkId===item.id&&x.checked)}))};
+}
+function record(outcome){let q=calc();if(!q){alert('Please enter valid entry, stop-loss and take-profit levels first.');return}let r=outcome==='Win'?q.rr:outcome==='Loss'?-1:0,quality=qualityResult();journal.push({id:String(Date.now())+Math.random().toString(16).slice(2),date:viewBars[shown-1]?new Date(viewBars[shown-1].time*1000).toISOString().replace('T',' ').slice(0,16):new Date().toISOString().slice(0,16),side:q.side,session:$('session').value,outcome,r,strategy:$('strategy').value.trim(),quality:quality.score,qualityTotal:quality.total,qualityGrade:quality.grade,qualityItems:quality.items,note:$('note').value.trim()});stats()}
+$('chooseCsv').onclick=()=>$('csvFile').click();$('csvFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{loadData(parseCSV(await f.text()));}catch(err){alert(err.message)}e.target.value=''};
+$('sample').onclick=()=>loadData(sampleData());$('back').onclick=()=>{stopPlay();shown=Math.max(1,shown-1);render()};$('forward').onclick=()=>{shown=Math.min(bars.length,shown+1);render()};$('restart').onclick=()=>{stopPlay();shown=Math.min(1,bars.length);render()};$('play').onclick=()=>{if(playing){stopPlay();return}if(!viewBars.length)return;playing=true;$('play').textContent='Ⅱ Pause';playTimer=setInterval(()=>{if(shown>=viewBars.length){stopPlay();return}shown++;render()},700)};
+$('calculate').onclick=calc;$('mark').onclick=drawLines;
+$('addQualityItem').onclick=()=>{let value=$('newQualityItem').value.trim();if(!value)return;settings.checks.push({id:'custom-'+Date.now()+'-'+Math.random().toString(16).slice(2),text:value});$('newQualityItem').value='';saveSettings();renderChecklist()};
+$('newQualityItem').addEventListener('keydown',e=>{if(e.key==='Enter')$('addQualityItem').click()});
+$('qualityChecklist').onclick=e=>{let b=e.target.closest('[data-remove-check]');if(b){settings.checks=settings.checks.filter(x=>x.id!==b.dataset.removeCheck);saveSettings();renderChecklist()}};
+$('starterChecklist').onclick=()=>{if(confirm('Replace your current checklist with the optional starter template?')){settings.checks=STARTER_CHECKS.map((text,i)=>({id:'starter-'+i,text}));saveSettings();renderChecklist()}};
+$('clearChecklist').onclick=()=>{if(confirm('Remove all checklist conditions? You can still record trades without a checklist.')){settings.checks=[];saveSettings();renderChecklist()}};
+$('dailyLimit').value=settings.dailyLimit;$('riskPct').value=settings.riskPct;
+$('dailyLimit').addEventListener('change',()=>{settings.dailyLimit=Math.max(0,Math.floor(Number($('dailyLimit').value)||0));$('dailyLimit').value=settings.dailyLimit;saveSettings();stats()});
+$('riskPct').addEventListener('change',()=>{let n=Number($('riskPct').value);if(Number.isFinite(n)&&n>0){settings.riskPct=n;saveSettings()}});
+['entry','sl','tp','side','balance','riskPct'].forEach(id=>$(id).addEventListener('change',()=>{calc()}));
+$('timeframes').querySelectorAll('button').forEach(btn=>btn.onclick=()=>{if(!btn.disabled){stopPlay();setTimeframe(Number(btn.dataset.tf))}});
+$('recordWin').onclick=()=>record('Win');$('recordLoss').onclick=()=>record('Loss');$('recordBE').onclick=()=>record('Breakeven');$('journalRows').onclick=e=>{let b=e.target.closest('[data-delete]');if(b){journal=journal.filter(x=>x.id!==b.dataset.delete);stats()}};
+$('clearJournal').onclick=()=>{if(confirm('Delete every journal entry? Download a backup first if you need one.')){journal=[];stats()}};
+function download(name,content,type){let blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
+$('downloadCsvExample').onclick=()=>download('skingfx-csv-format-example.csv','Date,Open,High,Low,Close,Volume\\n2025-01-02 09:00:00,2650.00,2652.50,2648.00,2651.25,120\\n2025-01-02 09:05:00,2651.25,2654.00,2650.50,2653.75,145\\n','text/csv');
+$('backup').onclick=()=>download('skingfx-journal-backup.json',JSON.stringify(journal,null,2),'application/json');
+$('restoreFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let a=JSON.parse(await f.text());if(!Array.isArray(a)||!a.every(x=>x&&x.outcome&&Number.isFinite(x.r)))throw Error('This backup file is not a valid S.KingFx journal.');if(confirm('Restore '+a.length+' entries? This replaces the current journal.')){journal=a;persist();stats();alert('Backup restored successfully: '+journal.length+' trade(s).')}}catch(err){alert(err.message)}e.target.value=''};
+$('export').onclick=()=>{let cols=['date','side','session','strategy','outcome','quality','qualityTotal','qualityGrade','r','note'],csv=[cols.join(','),...journal.map(x=>cols.map(k=>'"'+String(x[k]??'').replace(/"/g,'""')+'"').join(','))].join('\n');download('skingfx-trade-journal.csv',csv,'text/csv')};
+renderChecklist();initChart();stats();calc();bars=sampleData();setTimeframe(900);
 })();
-</script>
-</body>
-</html>
+</script></body></html>
