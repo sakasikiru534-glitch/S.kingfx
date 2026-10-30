@@ -41,6 +41,23 @@ main{max-width:1280px;margin:auto;padding:18px;display:grid;grid-template-column
  <div class="metrics">
   <div class="metric"><small>Risk distance</small><b id="riskDist">—</b></div><div class="metric"><small>Reward distance</small><b id="rewardDist">—</b></div><div class="metric"><small>Risk : Reward</small><b id="rr">—</b></div><div class="metric"><small>Cash risk</small><b id="cashRisk">—</b></div>
  </div>
+ <h3 style="margin-top:18px">Setup quality checklist</h3>
+ <p class="hint">Tick only conditions that are genuinely present before entry. This score records process quality; it does not predict whether a trade will win.</p>
+ <div class="grid" id="qualityChecklist">
+  <label><input type="checkbox" class="quality-check" value="1"> Clear higher-timeframe direction or a documented reason to trade against it</label>
+  <label><input type="checkbox" class="quality-check" value="1"> Price is at a level or area marked before the entry</label>
+  <label><input type="checkbox" class="quality-check" value="1"> A clear entry trigger / confirmation has appeared</label>
+  <label><input type="checkbox" class="quality-check" value="1"> Stop loss is beyond a logical invalidation point</label>
+  <label><input type="checkbox" class="quality-check" value="1"> Take profit is planned at a realistic target</label>
+  <label><input type="checkbox" class="quality-check" value="1"> Risk is within my 0.5% plan</label>
+  <label><input type="checkbox" class="quality-check" value="1"> This trade is within my 3-trades-per-day limit</label>
+  <label><input type="checkbox" class="quality-check" value="1"> No major news or unusual volatility risk has been ignored</label>
+ </div>
+ <div class="metrics" style="margin-top:10px">
+  <div class="metric"><small>Checklist score</small><b id="qualityScore">0 / 8</b></div>
+  <div class="metric"><small>Process grade</small><b id="qualityGrade">Not rated</b></div>
+ </div>
+ <div class="hint" id="qualityAdvice">Complete the checklist before recording a trade.</div>
  <p class="hint" id="setupCheck">Enter your levels and calculate. Cash risk is an estimate and does not calculate gold lot size or broker contract specifications.</p>
 </section>
 <section class="card wide">
@@ -49,6 +66,7 @@ main{max-width:1280px;margin:auto;padding:18px;display:grid;grid-template-column
   <div class="field"><label>Setup / strategy name</label><input id="strategy" placeholder="e.g. London sweep + confirmation"></div>
   <div class="field"><label>Trading session (choose manually)</label><select id="session"><option value="London">London</option><option value="New York">New York</option><option value="Asia">Asia</option><option value="Other">Other</option></select></div>
   <div class="field"><label>Trade note</label><input id="note" placeholder="Why did you take this setup?"></div>
+  <div class="field"><label>Checklist result</label><input id="qualitySaved" readonly value="0/8 · Not rated"></div>
  </div>
  <div class="controls"><button id="recordWin" class="primary">Record win</button><button id="recordLoss">Record loss</button><button id="recordBE">Record breakeven</button></div>
  <div class="metrics">
@@ -71,7 +89,7 @@ main{max-width:1280px;margin:auto;padding:18px;display:grid;grid-template-column
   <div><h3>Session performance</h3><div class="tablewrap"><table><thead><tr><th>Session</th><th>Trades</th><th>Win rate</th><th>Net R</th></tr></thead><tbody id="sessionRows"><tr><td colspan="4">No data yet.</td></tr></tbody></table></div></div>
  </div>
  <h3 style="margin-top:18px">Trade history</h3>
- <div class="tablewrap" style="margin-top:14px"><table><thead><tr><th>Date / candle</th><th>Side</th><th>Strategy</th><th>Outcome</th><th>R</th><th>Note</th><th></th></tr></thead><tbody id="journalRows"><tr><td colspan="7" class="muted">No journal entries yet.</td></tr></tbody></table></div>
+ <div class="tablewrap" style="margin-top:14px"><table><thead><tr><th>Date / candle</th><th>Side</th><th>Strategy</th><th>Outcome</th><th>Quality</th><th>R</th><th>Note</th><th></th></tr></thead><tbody id="journalRows"><tr><td colspan="7" class="muted">No journal entries yet.</td></tr></tbody></table></div>
  <div class="controls"><button id="clearJournal" class="smallbtn">Clear journal</button><button id="backup" class="smallbtn">Download backup</button><label for="restoreFile" class="smallbtn" style="border:1px solid #30394a;border-radius:9px;padding:8px;cursor:pointer">Restore backup</label><input id="restoreFile" class="file" type="file" accept=".json,application/json"></div>
 </section>
 <div class="footer">S.KingFx Lab · Educational backtesting tool. Imported data and journal are stored locally in this browser; clearing browser data may erase them. This prototype does not provide cloud accounts, shared user profiles, live broker prices or order execution. Historical results do not guarantee future performance.</div>
@@ -126,21 +144,28 @@ function stats(){
  let sessionGroups=Object.entries(sessionMap);
  $('sessionRows').innerHTML=sessionGroups.length?summarize(sessionGroups):'<tr><td colspan="4" class="muted">No trades yet.</td></tr>';
  drawEquityCurve();
- $('journalRows').innerHTML=journal.length?journal.slice().reverse().map(x=>'<tr><td>'+escapeHTML(x.date)+'</td><td>'+escapeHTML(x.side)+'</td><td>'+escapeHTML(x.strategy||'—')+'</td><td class="'+(x.outcome==='Win'?'positive':x.outcome==='Loss'?'negative':'')+'">'+escapeHTML(x.outcome)+'</td><td>'+x.r.toFixed(2)+'R</td><td>'+escapeHTML(x.note||'')+'</td><td><button class="smallbtn" data-delete="'+x.id+'">Delete</button></td></tr>').join(''):'<tr><td colspan="7" class="muted">No journal entries yet.</td></tr>';
+ $('journalRows').innerHTML=journal.length?journal.slice().reverse().map(x=>'<tr><td>'+escapeHTML(x.date)+'</td><td>'+escapeHTML(x.side)+'</td><td>'+escapeHTML(x.strategy||'—')+'</td><td class="'+(x.outcome==='Win'?'positive':x.outcome==='Loss'?'negative':'')+'">'+escapeHTML(x.outcome)+'</td><td>'+((Number.isFinite(x.quality)?x.quality+' / '+(x.qualityTotal||8):'—'))+'</td><td>'+x.r.toFixed(2)+'R</td><td>'+escapeHTML(x.note||'')+'</td><td><button class="smallbtn" data-delete="'+x.id+'">Delete</button></td></tr>').join(''):'<tr><td colspan="8" class="muted">No journal entries yet.</td></tr>';
  persist()
 }
 function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function record(outcome){let q=calc();if(!q){alert('Please enter valid entry, stop-loss and take-profit levels first.');return}let r=outcome==='Win'?q.rr:outcome==='Loss'?-1:0;journal.push({id:String(Date.now())+Math.random().toString(16).slice(2),date:bars[shown-1]?new Date(bars[shown-1].time*1000).toISOString().replace('T',' ').slice(0,16):new Date().toISOString().slice(0,16),side:q.side,session:$('session').value,outcome,r,strategy:$('strategy').value.trim(),note:$('note').value.trim()});stats()}
+function qualityResult(){
+ const checks=[...document.querySelectorAll('.quality-check')],score=checks.filter(x=>x.checked).length,total=checks.length;
+ let grade=score===total?'A':score>=6?'B':score>=4?'C':'D';
+ let advice=score===total?'All checklist conditions are ticked. Still follow your risk limits.':score>=6?'Good process score. Review the unticked conditions before entry.':score>=4?'Mixed setup quality. Be cautious and review missing conditions.':'Several conditions are missing. Consider skipping this setup until your rules are met.';
+ $('qualityScore').textContent=score+' / '+total;$('qualityGrade').textContent=grade;$('qualityAdvice').textContent=advice;$('qualitySaved').value=score+'/'+total+' · Grade '+grade;
+ return {score,total,grade};
+}
+function record(outcome){let q=calc();if(!q){alert('Please enter valid entry, stop-loss and take-profit levels first.');return}let r=outcome==='Win'?q.rr:outcome==='Loss'?-1:0;journal.push({id:String(Date.now())+Math.random().toString(16).slice(2),date:bars[shown-1]?new Date(bars[shown-1].time*1000).toISOString().replace('T',' ').slice(0,16):new Date().toISOString().slice(0,16),side:q.side,session:$('session').value,outcome,r,strategy:$('strategy').value.trim(),quality:qualityResult().score,qualityTotal:qualityResult().total,qualityGrade:qualityResult().grade,note:$('note').value.trim()});stats()}
 $('chooseCsv').onclick=()=>$('csvFile').click();$('csvFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{loadData(parseCSV(await f.text()));}catch(err){alert(err.message)}e.target.value=''};
 $('sample').onclick=()=>loadData(sampleData());$('back').onclick=()=>{stopPlay();shown=Math.max(1,shown-1);render()};$('forward').onclick=()=>{shown=Math.min(bars.length,shown+1);render()};$('restart').onclick=()=>{stopPlay();shown=Math.min(1,bars.length);render()};$('play').onclick=()=>{if(playing){stopPlay();return}if(!bars.length)return;playing=true;$('play').textContent='Ⅱ Pause';playTimer=setInterval(()=>{if(shown>=bars.length){stopPlay();return}shown++;render()},700)};
-$('calculate').onclick=calc;$('mark').onclick=drawLines;['entry','sl','tp','side','balance','riskPct'].forEach(id=>$(id).addEventListener('change',()=>{calc()}));
+$('calculate').onclick=calc;$('mark').onclick=drawLines;document.querySelectorAll('.quality-check').forEach(x=>x.addEventListener('change',qualityResult));['entry','sl','tp','side','balance','riskPct'].forEach(id=>$(id).addEventListener('change',()=>{calc()}));
 $('timeframes').querySelectorAll('button').forEach(btn=>btn.onclick=()=>{let n=btn.dataset.tf;shown=n==='all'?bars.length:Math.min(Number(n),bars.length);$('timeframes').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b===btn));render()});
 $('recordWin').onclick=()=>record('Win');$('recordLoss').onclick=()=>record('Loss');$('recordBE').onclick=()=>record('Breakeven');$('journalRows').onclick=e=>{let b=e.target.closest('[data-delete]');if(b){journal=journal.filter(x=>x.id!==b.dataset.delete);stats()}};
 $('clearJournal').onclick=()=>{if(confirm('Delete every journal entry? Download a backup first if you need one.')){journal=[];stats()}};
 function download(name,content,type){let blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
 $('backup').onclick=()=>download('skingfx-journal-backup.json',JSON.stringify(journal,null,2),'application/json');
 $('restoreFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let a=JSON.parse(await f.text());if(!Array.isArray(a)||!a.every(x=>x&&x.outcome&&Number.isFinite(x.r)))throw Error('This backup file is not a valid S.KingFx journal.');if(confirm('Restore '+a.length+' entries? This replaces the current journal.')){journal=a;stats()}}catch(err){alert(err.message)}e.target.value=''};
-$('export').onclick=()=>{let cols=['date','side','session','strategy','outcome','r','note'],csv=[cols.join(','),...journal.map(x=>cols.map(k=>'"'+String(x[k]??'').replace(/"/g,'""')+'"').join(','))].join('\n');download('skingfx-trade-journal.csv',csv,'text/csv')};
+$('export').onclick=()=>{let cols=['date','side','session','strategy','outcome','quality','qualityTotal','qualityGrade','r','note'],csv=[cols.join(','),...journal.map(x=>cols.map(k=>'"'+String(x[k]??'').replace(/"/g,'""')+'"').join(','))].join('\n');download('skingfx-trade-journal.csv',csv,'text/csv')};
 initChart();stats();calc();bars=sampleData();shown=30;render();
 })();
 </script></body></html>
