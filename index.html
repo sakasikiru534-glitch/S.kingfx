@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#080a0f">
-<title>S.KingFx Lab — XAUUSD Backtesting</title>
+<title>S.KingFx Lab — Custom Strategy Backtesting</title>
 <script src="https://unpkg.com/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js"></script>
 <style>
 :root{color-scheme:dark;--bg:#080a0f;--panel:#11151d;--panel2:#0c1017;--line:#252d3b;--text:#edf1f7;--muted:#96a2b5;--gold:#d8ad55;--green:#26bd8a;--red:#f06c78}
@@ -12,7 +12,7 @@ main{max-width:1280px;margin:auto;padding:18px;display:grid;grid-template-column
 @media(max-width:850px){main{grid-template-columns:1fr;padding:10px}.wide,.footer{grid-column:auto}#chart{height:330px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:390px){header{padding:0 11px}.tag{font-size:9px}#chart{height:280px}.grid,.two{grid-template-columns:1fr}}
 </style></head>
 <body>
-<header><div class="brand">S.King<span>Fx</span> Lab</div><div class="tag">XAUUSD BACKTEST STUDIO</div></header>
+<header><div class="brand">S.King<span>Fx</span> Lab</div><div class="tag">CUSTOM STRATEGY BACKTEST STUDIO</div></header>
 <main>
 <section class="card">
  <div class="heading"><div><h2>XAUUSD · Gold / US Dollar</h2><div class="muted" id="dataStatus">Load your own historical CSV data to begin</div></div><div class="price" id="lastPrice">—</div></div>
@@ -31,7 +31,8 @@ main{max-width:1280px;margin:auto;padding:18px;display:grid;grid-template-column
  <h2>Trade planner</h2>
  <div class="grid">
   <div class="field"><label>Direction</label><select id="side"><option value="buy">Buy</option><option value="sell">Sell</option></select></div>
-  <div class="field"><label>Risk per trade (%)</label><input id="riskPct" type="number" value="0.5" min="0.01" step="0.01"></div>
+  <div class="field"><label>Your risk per trade (%)</label><input id="riskPct" type="number" value="0.5" min="0.01" step="0.01"></div>
+  <div class="field"><label>Your daily trade limit (0 = no limit)</label><input id="dailyLimit" type="number" value="3" min="0" step="1"></div>
   <div class="field"><label>Account balance ($)</label><input id="balance" type="number" value="1000" min="0" step="1"></div>
   <div class="field"><label>Entry price</label><input id="entry" type="number" step="0.01" placeholder="Entry"></div>
   <div class="field"><label>Stop loss</label><input id="sl" type="number" step="0.01" placeholder="Stop loss"></div>
@@ -41,23 +42,15 @@ main{max-width:1280px;margin:auto;padding:18px;display:grid;grid-template-column
  <div class="metrics">
   <div class="metric"><small>Risk distance</small><b id="riskDist">—</b></div><div class="metric"><small>Reward distance</small><b id="rewardDist">—</b></div><div class="metric"><small>Risk : Reward</small><b id="rr">—</b></div><div class="metric"><small>Cash risk</small><b id="cashRisk">—</b></div>
  </div>
- <h3 style="margin-top:18px">Setup quality checklist</h3>
- <p class="hint">Tick only conditions that are genuinely present before entry. This score records process quality; it does not predict whether a trade will win.</p>
- <div class="grid" id="qualityChecklist">
-  <label><input type="checkbox" class="quality-check" value="1"> Clear higher-timeframe direction or a documented reason to trade against it</label>
-  <label><input type="checkbox" class="quality-check" value="1"> Price is at a level or area marked before the entry</label>
-  <label><input type="checkbox" class="quality-check" value="1"> A clear entry trigger / confirmation has appeared</label>
-  <label><input type="checkbox" class="quality-check" value="1"> Stop loss is beyond a logical invalidation point</label>
-  <label><input type="checkbox" class="quality-check" value="1"> Take profit is planned at a realistic target</label>
-  <label><input type="checkbox" class="quality-check" value="1"> Risk is within my 0.5% plan</label>
-  <label><input type="checkbox" class="quality-check" value="1"> This trade is within my 3-trades-per-day limit</label>
-  <label><input type="checkbox" class="quality-check" value="1"> No major news or unusual volatility risk has been ignored</label>
- </div>
+ <h3 style="margin-top:18px">My setup checklist</h3>
+ <p class="hint">Build this around your own strategy. These checks are optional notes for your process, not universal trading rules.</p>
+ <div class="controls"><input id="newQualityItem" style="flex:1;min-width:180px" placeholder="Add a condition for my strategy"><button id="addQualityItem" class="smallbtn">Add condition</button><button id="starterChecklist" class="smallbtn">Load starter template</button><button id="clearChecklist" class="smallbtn">Clear all</button></div>
+ <div class="grid" id="qualityChecklist"></div>
  <div class="metrics" style="margin-top:10px">
-  <div class="metric"><small>Checklist score</small><b id="qualityScore">0 / 8</b></div>
-  <div class="metric"><small>Process grade</small><b id="qualityGrade">Not rated</b></div>
+  <div class="metric"><small>Checklist score</small><b id="qualityScore">Not used</b></div>
+  <div class="metric"><small>Conditions met</small><b id="qualityGrade">—</b></div>
  </div>
- <div class="hint" id="qualityAdvice">Complete the checklist before recording a trade.</div>
+ <div class="hint" id="qualityAdvice">Add your own conditions, or leave the checklist empty if you do not use one.</div>
  <p class="hint" id="setupCheck">Enter your levels and calculate. Cash risk is an estimate and does not calculate gold lot size or broker contract specifications.</p>
 </section>
 <section class="card wide">
@@ -78,7 +71,7 @@ main{max-width:1280px;margin:auto;padding:18px;display:grid;grid-template-column
  <div class="metrics" style="margin-top:8px">
   <div class="metric"><small>Average winning trade</small><b id="avgWin">—</b></div><div class="metric"><small>Average losing trade</small><b id="avgLoss">—</b></div><div class="metric"><small>Best trade</small><b id="bestTrade">—</b></div><div class="metric"><small>Worst trade</small><b id="worstTrade">—</b></div>
  </div>
- <div class="notice" style="margin-top:12px">Daily discipline check · Your personal limit is 3 trades per day. <b id="dailyDiscipline">No trades recorded yet.</b></div>
+ <div class="notice" style="margin-top:12px">Daily trade count · Based on the limit you choose in Trade Planner. <b id="dailyDiscipline">No trades recorded yet.</b></div>
  <h3 style="margin-top:18px">Strategy breakdown</h3>
  <div class="tablewrap"><table><thead><tr><th>Strategy</th><th>Trades</th><th>Win rate</th><th>Net R</th><th>Average R</th></tr></thead><tbody id="strategyRows"><tr><td colspan="5" class="muted">Add journal entries with strategy names to compare setups.</td></tr></tbody></table></div>
  <h3 style="margin-top:18px">Equity curve · cumulative R</h3>
@@ -97,9 +90,13 @@ main{max-width:1280px;margin:auto;padding:18px;display:grid;grid-template-column
 <script>
 (function(){
 const $=id=>document.getElementById(id);let bars=[],shown=0,chart=null,candleSeries=null,playing=false,playTimer=null,journal=[];let lines=[],chartFitted=false;
-const STORE='skingfx-lab-journal-v2';
+const STORE='skingfx-lab-journal-v2', SETTINGS='skingfx-lab-settings-v1';
+const STARTER_CHECKS=['Clear higher-timeframe direction or a documented reason to trade against it','Price is at a level or area marked before the entry','A clear entry trigger / confirmation has appeared','Stop loss is beyond a logical invalidation point','Take profit is planned at a realistic target','Position risk is within my chosen risk plan','This trade is within my chosen daily trade limit','No major news or unusual volatility risk has been ignored'];
+let settings={checks:STARTER_CHECKS.map((text,i)=>({id:'starter-'+i,text})),dailyLimit:3,riskPct:0.5};
+try{const saved=JSON.parse(localStorage.getItem(SETTINGS)||'null');if(saved&&typeof saved==='object'){if(Array.isArray(saved.checks))settings.checks=saved.checks.filter(x=>x&&typeof x.text==='string').map((x,i)=>({id:String(x.id||('custom-'+i)),text:x.text}));if(Number.isFinite(Number(saved.dailyLimit)))settings.dailyLimit=Math.max(0,Math.floor(Number(saved.dailyLimit)));if(Number.isFinite(Number(saved.riskPct))&&Number(saved.riskPct)>0)settings.riskPct=Number(saved.riskPct)}}catch(e){}
+
 try{journal=JSON.parse(localStorage.getItem(STORE)||'[]');if(!Array.isArray(journal))journal=[]}catch(e){journal=[]}
-function persist(){try{localStorage.setItem(STORE,JSON.stringify(journal))}catch(e){alert('Browser storage is full. Please export a backup.')}} 
+function persist(){try{localStorage.setItem(STORE,JSON.stringify(journal));localStorage.setItem(SETTINGS,JSON.stringify(settings))}catch(e){alert('Browser storage is full. Please export a backup.')}} 
 function dateValue(v){if(v===undefined||v===null||v==='')return null;let s=String(v).trim();if(/^\d{10,13}$/.test(s)){let n=Number(s);return Math.floor(n>1e12?n/1000:n)}let d=new Date(s.replace(/\./g,'-'));if(Number.isNaN(d.getTime()))return null;return Math.floor(d.getTime()/1000)}
 function parseCSV(text){let rows=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim()).map(line=>{let a=[],v='',q=false;for(let i=0;i<line.length;i++){let c=line[i];if(c==='"'&&line[i+1]==='"'&&q){v+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){a.push(v.trim());v=''}else v+=c}a.push(v.trim());return a});if(rows.length<2)throw Error('CSV needs a header row and at least one candle.');let h=rows[0].map(x=>x.toLowerCase().replace(/[^a-z]/g,''));const ix=(names)=>h.findIndex(x=>names.includes(x));let ti=ix(['time','date','datetime','timestamp']);let oi=ix(['open']),hi=ix(['high']),li=ix(['low']),ci=ix(['close']),vi=ix(['volume','tickvolume']);if([ti,oi,hi,li,ci].some(x=>x<0))throw Error('Required columns: Date/Time, Open, High, Low, Close.');let out=[];for(let r of rows.slice(1)){let time=dateValue(r[ti]),open=Number(r[oi]),high=Number(r[hi]),low=Number(r[li]),close=Number(r[ci]),volume=vi>=0?Number(r[vi])||0:0;if(time&&[open,high,low,close].every(Number.isFinite)&&high>=Math.max(open,close,low)&&low<=Math.min(open,close,high))out.push({time,open,high,low,close,volume})}out.sort((a,b)=>a.time-b.time);out=out.filter((x,i)=>!i||x.time!==out[i-1].time);if(out.length<2)throw Error('Could not read enough valid candles. Check your CSV dates and prices.');return out}
 function sampleData(){let p=2350,t=Date.UTC(2025,0,2)/1000,a=[];for(let i=0;i<240;i++){let o=p,c=o+(Math.random()-.49)*4,h=Math.max(o,c)+Math.random()*1.5,l=Math.min(o,c)-Math.random()*1.5;a.push({time:t,open:+o.toFixed(2),high:+h.toFixed(2),low:+l.toFixed(2),close:+c.toFixed(2)});p=c;t+=300}return a}
@@ -132,8 +129,8 @@ function stats(){
  $('totalTrades').textContent=journal.length;$('winRate').textContent=journal.length?(wins.length/journal.length*100).toFixed(1)+'%':'—';$('netR').textContent=net.toFixed(2)+'R';$('profitFactor').textContent=grossLoss?(grossWin/grossLoss).toFixed(2):grossWin?'∞':'—';
  $('avgR').textContent=journal.length?avg.toFixed(2)+'R':'—';$('expectancy').textContent=journal.length?avg.toFixed(2)+'R':'—';$('maxDD').textContent=maxDD.toFixed(2)+'R';$('losingStreak').textContent=longest;
  $('avgWin').textContent=avgWin===null?'—':avgWin.toFixed(2)+'R';$('avgLoss').textContent=avgLoss===null?'—':avgLoss.toFixed(2)+'R';$('bestTrade').textContent=best===null?'—':best.toFixed(2)+'R';$('worstTrade').textContent=worst===null?'—':worst.toFixed(2)+'R';
- let days={};journal.forEach(x=>{let day=String(x.date||'').slice(0,10)||'Unknown';days[day]=(days[day]||0)+1});let counts=Object.values(days),maxDay=counts.length?Math.max(...counts):0,over=counts.filter(n=>n>3).length;
- $('dailyDiscipline').textContent=journal.length?(maxDay+' trades was your busiest day; '+(over?over+' day(s) exceeded your 3-trade limit.':'no recorded day exceeded your 3-trade limit.')):'No trades recorded yet.';
+ let days={};journal.forEach(x=>{let day=String(x.date||'').slice(0,10)||'Unknown';days[day]=(days[day]||0)+1});let counts=Object.values(days),maxDay=counts.length?Math.max(...counts):0,limit=settings.dailyLimit,over=limit>0?counts.filter(n=>n>limit).length:0;
+ $('dailyDiscipline').textContent=journal.length?(maxDay+' trades was your busiest day; '+(limit===0?'no daily limit is set.':over?over+' day(s) exceeded your '+limit+'-trade limit.':'no recorded day exceeded your '+limit+'-trade limit.')):'No trades recorded yet.';
  let groups={};journal.forEach(x=>{let name=(x.strategy||'Unlabelled').trim()||'Unlabelled';if(!groups[name])groups[name]=[];groups[name].push(x)});
  let entries=Object.entries(groups).sort((a,b)=>b[1].length-a[1].length);
  $('strategyRows').innerHTML=entries.length?entries.map(([name,a])=>{let w=a.filter(x=>x.outcome==='Win').length,n=a.reduce((s,x)=>s+x.r,0);return '<tr><td>'+escapeHTML(name)+'</td><td>'+a.length+'</td><td>'+(w/a.length*100).toFixed(1)+'%</td><td>'+n.toFixed(2)+'R</td><td>'+(n/a.length).toFixed(2)+'R</td></tr>'}).join(''):'<tr><td colspan="5" class="muted">Add journal entries with strategy names to compare setups.</td></tr>';
@@ -148,17 +145,34 @@ function stats(){
  persist()
 }
 function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function qualityResult(){
- const checks=[...document.querySelectorAll('.quality-check')],score=checks.filter(x=>x.checked).length,total=checks.length;
- let grade=score===total?'A':score>=6?'B':score>=4?'C':'D';
- let advice=score===total?'All checklist conditions are ticked. Still follow your risk limits.':score>=6?'Good process score. Review the unticked conditions before entry.':score>=4?'Mixed setup quality. Be cautious and review missing conditions.':'Several conditions are missing. Consider skipping this setup until your rules are met.';
- $('qualityScore').textContent=score+' / '+total;$('qualityGrade').textContent=grade;$('qualityAdvice').textContent=advice;$('qualitySaved').value=score+'/'+total+' · Grade '+grade;
- return {score,total,grade};
+function saveSettings(){try{localStorage.setItem(SETTINGS,JSON.stringify(settings))}catch(e){}}
+function renderChecklist(){
+ const host=$('qualityChecklist');if(!host)return;
+ host.innerHTML=settings.checks.map(item=>'<label style="display:flex;align-items:flex-start;gap:7px"><input type="checkbox" class="quality-check" data-check-id="'+escapeHTML(item.id)+'" style="width:auto;min-height:0;margin-top:2px"> <span>'+escapeHTML(item.text)+'</span><button type="button" class="smallbtn" data-remove-check="'+escapeHTML(item.id)+'" style="margin-left:auto;padding:3px 7px;min-height:25px">Remove</button></label>').join('')||'<div class="hint">No checklist conditions yet. Add your own, load the starter template, or leave it empty.</div>';
+ host.querySelectorAll('.quality-check').forEach(x=>x.addEventListener('change',qualityResult));
+ qualityResult();
 }
-function record(outcome){let q=calc();if(!q){alert('Please enter valid entry, stop-loss and take-profit levels first.');return}let r=outcome==='Win'?q.rr:outcome==='Loss'?-1:0;journal.push({id:String(Date.now())+Math.random().toString(16).slice(2),date:bars[shown-1]?new Date(bars[shown-1].time*1000).toISOString().replace('T',' ').slice(0,16):new Date().toISOString().slice(0,16),side:q.side,session:$('session').value,outcome,r,strategy:$('strategy').value.trim(),quality:qualityResult().score,qualityTotal:qualityResult().total,qualityGrade:qualityResult().grade,note:$('note').value.trim()});stats()}
+function qualityResult(){
+ const checks=[...document.querySelectorAll('.quality-check')],total=checks.length,score=checks.filter(x=>x.checked).length;
+ const grade=total?(score+'/'+total):'Not used';
+ $('qualityScore').textContent=total?score+' / '+total:'Not used';$('qualityGrade').textContent=total?grade:'—';
+ $('qualityAdvice').textContent=total?(score===total?'All your conditions are ticked. This is a process note, not a prediction.':score+' of '+total+' conditions are ticked. Review the ones you left unchecked.'):'Your checklist is empty. You can still record trades normally.';
+ $('qualitySaved').value=total?score+'/'+total+' conditions':'Not used';
+ return {score,total,grade:total?grade:'Not used',items:settings.checks.map(item=>({text:item.text,checked:checks.some(x=>x.dataset.checkId===item.id&&x.checked)}))};
+}
+function record(outcome){let q=calc();if(!q){alert('Please enter valid entry, stop-loss and take-profit levels first.');return}let r=outcome==='Win'?q.rr:outcome==='Loss'?-1:0,quality=qualityResult();journal.push({id:String(Date.now())+Math.random().toString(16).slice(2),date:bars[shown-1]?new Date(bars[shown-1].time*1000).toISOString().replace('T',' ').slice(0,16):new Date().toISOString().slice(0,16),side:q.side,session:$('session').value,outcome,r,strategy:$('strategy').value.trim(),quality:quality.score,qualityTotal:quality.total,qualityGrade:quality.grade,qualityItems:quality.items,note:$('note').value.trim()});stats()}
 $('chooseCsv').onclick=()=>$('csvFile').click();$('csvFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{loadData(parseCSV(await f.text()));}catch(err){alert(err.message)}e.target.value=''};
 $('sample').onclick=()=>loadData(sampleData());$('back').onclick=()=>{stopPlay();shown=Math.max(1,shown-1);render()};$('forward').onclick=()=>{shown=Math.min(bars.length,shown+1);render()};$('restart').onclick=()=>{stopPlay();shown=Math.min(1,bars.length);render()};$('play').onclick=()=>{if(playing){stopPlay();return}if(!bars.length)return;playing=true;$('play').textContent='Ⅱ Pause';playTimer=setInterval(()=>{if(shown>=bars.length){stopPlay();return}shown++;render()},700)};
-$('calculate').onclick=calc;$('mark').onclick=drawLines;document.querySelectorAll('.quality-check').forEach(x=>x.addEventListener('change',qualityResult));['entry','sl','tp','side','balance','riskPct'].forEach(id=>$(id).addEventListener('change',()=>{calc()}));
+$('calculate').onclick=calc;$('mark').onclick=drawLines;
+$('addQualityItem').onclick=()=>{let value=$('newQualityItem').value.trim();if(!value)return;settings.checks.push({id:'custom-'+Date.now()+'-'+Math.random().toString(16).slice(2),text:value});$('newQualityItem').value='';saveSettings();renderChecklist()};
+$('newQualityItem').addEventListener('keydown',e=>{if(e.key==='Enter')$('addQualityItem').click()});
+$('qualityChecklist').onclick=e=>{let b=e.target.closest('[data-remove-check]');if(b){settings.checks=settings.checks.filter(x=>x.id!==b.dataset.removeCheck);saveSettings();renderChecklist()}};
+$('starterChecklist').onclick=()=>{if(confirm('Replace your current checklist with the optional starter template?')){settings.checks=STARTER_CHECKS.map((text,i)=>({id:'starter-'+i,text}));saveSettings();renderChecklist()}};
+$('clearChecklist').onclick=()=>{if(confirm('Remove all checklist conditions? You can still record trades without a checklist.')){settings.checks=[];saveSettings();renderChecklist()}};
+$('dailyLimit').value=settings.dailyLimit;$('riskPct').value=settings.riskPct;
+$('dailyLimit').addEventListener('change',()=>{settings.dailyLimit=Math.max(0,Math.floor(Number($('dailyLimit').value)||0));$('dailyLimit').value=settings.dailyLimit;saveSettings();stats()});
+$('riskPct').addEventListener('change',()=>{let n=Number($('riskPct').value);if(Number.isFinite(n)&&n>0){settings.riskPct=n;saveSettings()}});
+['entry','sl','tp','side','balance','riskPct'].forEach(id=>$(id).addEventListener('change',()=>{calc()}));
 $('timeframes').querySelectorAll('button').forEach(btn=>btn.onclick=()=>{let n=btn.dataset.tf;shown=n==='all'?bars.length:Math.min(Number(n),bars.length);$('timeframes').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b===btn));render()});
 $('recordWin').onclick=()=>record('Win');$('recordLoss').onclick=()=>record('Loss');$('recordBE').onclick=()=>record('Breakeven');$('journalRows').onclick=e=>{let b=e.target.closest('[data-delete]');if(b){journal=journal.filter(x=>x.id!==b.dataset.delete);stats()}};
 $('clearJournal').onclick=()=>{if(confirm('Delete every journal entry? Download a backup first if you need one.')){journal=[];stats()}};
@@ -166,6 +180,6 @@ function download(name,content,type){let blob=new Blob([content],{type}),url=URL
 $('backup').onclick=()=>download('skingfx-journal-backup.json',JSON.stringify(journal,null,2),'application/json');
 $('restoreFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let a=JSON.parse(await f.text());if(!Array.isArray(a)||!a.every(x=>x&&x.outcome&&Number.isFinite(x.r)))throw Error('This backup file is not a valid S.KingFx journal.');if(confirm('Restore '+a.length+' entries? This replaces the current journal.')){journal=a;stats()}}catch(err){alert(err.message)}e.target.value=''};
 $('export').onclick=()=>{let cols=['date','side','session','strategy','outcome','quality','qualityTotal','qualityGrade','r','note'],csv=[cols.join(','),...journal.map(x=>cols.map(k=>'"'+String(x[k]??'').replace(/"/g,'""')+'"').join(','))].join('\n');download('skingfx-trade-journal.csv',csv,'text/csv')};
-initChart();stats();calc();bars=sampleData();shown=30;render();
+renderChecklist();initChart();stats();calc();bars=sampleData();shown=30;render();
 })();
 </script></body></html>
