@@ -122,7 +122,7 @@ $('clearJournal').onclick=()=>{if(confirm('Delete every journal entry? Download 
 function download(name,content,type){let blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
 $('backup').onclick=()=>download('skingfx-journal-backup.json',JSON.stringify(journal,null,2),'application/json');
 $('restoreFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let a=JSON.parse(await f.text());if(!Array.isArray(a)||!a.every(x=>x&&x.outcome&&Number.isFinite(x.r)))throw Error('This backup file is not a valid S.KingFx journal.');if(confirm('Restore '+a.length+' entries? This replaces the current journal.')){journal=a;stats()}}catch(err){alert(err.message)}e.target.value=''};
-$('export').onclick=()=>{let cols=['date','side','strategy','outcome','r','note'],csv=[cols.join(','),...journal.map(x=>cols.map(k=>'"'+String(x[k]??'').replace(/"/g,'""')+'"').join(','))].join('\n');download('skingfx-trade-journal.csv',csv,'text/csv')};
+$('export').onclick=()=>{let cols=['date','side','session','strategy','outcome','r','note'],csv=[cols.join(','),...journal.map(x=>cols.map(k=>'"'+String(x[k]??'').replace(/"/g,'""')+'"').join(','))].join('\n');download('skingfx-trade-journal.csv',csv,'text/csv')};
 initChart();stats();calc();bars=sampleData();shown=30;render();
 })();
 </script></body></html>
