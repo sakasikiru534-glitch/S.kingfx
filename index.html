@@ -32,7 +32,7 @@ main{max-width:1280px;margin:auto;padding:18px;display:grid;grid-template-column
  <div class="grid">
   <div class="field"><label>Direction</label><select id="side"><option value="buy">Buy</option><option value="sell">Sell</option></select></div>
   <div class="field"><label>Your risk per trade (%)</label><input id="riskPct" type="number" value="0.5" min="0.01" step="0.01"></div>
-  <div class="field"><label>Your daily trade limit (0 = no limit)</label><input id="dailyLimit" type="number" value="3" min="0" step="1"></div>
+  <div class="field"><label>Your daily trade limit (0 = no limit)</label><input id="dailyLimit" type="number" value="0" min="0" step="1"></div>
   <div class="field"><label>Account balance ($)</label><input id="balance" type="number" value="1000" min="0" step="1"></div>
   <div class="field"><label>Entry price</label><input id="entry" type="number" step="0.01" placeholder="Entry"></div>
   <div class="field"><label>Stop loss</label><input id="sl" type="number" step="0.01" placeholder="Stop loss"></div>
@@ -92,7 +92,7 @@ main{max-width:1280px;margin:auto;padding:18px;display:grid;grid-template-column
 const $=id=>document.getElementById(id);let bars=[],shown=0,chart=null,candleSeries=null,playing=false,playTimer=null,journal=[];let lines=[],chartFitted=false;
 const STORE='skingfx-lab-journal-v2', SETTINGS='skingfx-lab-settings-v1';
 const STARTER_CHECKS=['Clear higher-timeframe direction or a documented reason to trade against it','Price is at a level or area marked before the entry','A clear entry trigger / confirmation has appeared','Stop loss is beyond a logical invalidation point','Take profit is planned at a realistic target','Position risk is within my chosen risk plan','This trade is within my chosen daily trade limit','No major news or unusual volatility risk has been ignored'];
-let settings={checks:STARTER_CHECKS.map((text,i)=>({id:'starter-'+i,text})),dailyLimit:3,riskPct:0.5};
+let settings={checks:[],dailyLimit:0,riskPct:0.5};
 try{const saved=JSON.parse(localStorage.getItem(SETTINGS)||'null');if(saved&&typeof saved==='object'){if(Array.isArray(saved.checks))settings.checks=saved.checks.filter(x=>x&&typeof x.text==='string').map((x,i)=>({id:String(x.id||('custom-'+i)),text:x.text}));if(Number.isFinite(Number(saved.dailyLimit)))settings.dailyLimit=Math.max(0,Math.floor(Number(saved.dailyLimit)));if(Number.isFinite(Number(saved.riskPct))&&Number(saved.riskPct)>0)settings.riskPct=Number(saved.riskPct)}}catch(e){}
 
 try{journal=JSON.parse(localStorage.getItem(STORE)||'[]');if(!Array.isArray(journal))journal=[]}catch(e){journal=[]}
@@ -148,7 +148,7 @@ function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':
 function saveSettings(){try{localStorage.setItem(SETTINGS,JSON.stringify(settings))}catch(e){}}
 function renderChecklist(){
  const host=$('qualityChecklist');if(!host)return;
- host.innerHTML=settings.checks.map(item=>'<label style="display:flex;align-items:flex-start;gap:7px"><input type="checkbox" class="quality-check" data-check-id="'+escapeHTML(item.id)+'" style="width:auto;min-height:0;margin-top:2px"> <span>'+escapeHTML(item.text)+'</span><button type="button" class="smallbtn" data-remove-check="'+escapeHTML(item.id)+'" style="margin-left:auto;padding:3px 7px;min-height:25px">Remove</button></label>').join('')||'<div class="hint">No checklist conditions yet. Add your own, load the starter template, or leave it empty.</div>';
+ host.innerHTML=settings.checks.map(item=>'<div style="display:flex;align-items:flex-start;gap:7px"><input type="checkbox" class="quality-check" data-check-id="'+escapeHTML(item.id)+'" style="width:auto;min-height:0;margin-top:2px"> <span style="flex:1">'+escapeHTML(item.text)+'</span><button type="button" class="smallbtn" data-remove-check="'+escapeHTML(item.id)+'" style="padding:3px 7px;min-height:25px">Remove</button></div>').join('')||'<div class="hint">No checklist conditions yet. Add your own, load the starter template, or leave it empty.</div>';
  host.querySelectorAll('.quality-check').forEach(x=>x.addEventListener('change',qualityResult));
  qualityResult();
 }
