@@ -45,8 +45,9 @@ main{max-width:1280px;margin:auto;padding:18px;display:grid;grid-template-column
 </section>
 <section class="card wide">
  <div class="heading"><div><h2>Trade journal</h2><div class="muted">Record only after the replay has shown the outcome.</div></div><button class="smallbtn" id="export">Export journal CSV</button></div>
- <div class="grid" style="max-width:700px;margin:14px 0">
+ <div class="grid" style="max-width:850px;margin:14px 0">
   <div class="field"><label>Setup / strategy name</label><input id="strategy" placeholder="e.g. London sweep + confirmation"></div>
+  <div class="field"><label>Trading session (choose manually)</label><select id="session"><option value="London">London</option><option value="New York">New York</option><option value="Asia">Asia</option><option value="Other">Other</option></select></div>
   <div class="field"><label>Trade note</label><input id="note" placeholder="Why did you take this setup?"></div>
  </div>
  <div class="controls"><button id="recordWin" class="primary">Record win</button><button id="recordLoss">Record loss</button><button id="recordBE">Record breakeven</button></div>
@@ -62,6 +63,10 @@ main{max-width:1280px;margin:auto;padding:18px;display:grid;grid-template-column
  <div class="notice" style="margin-top:12px">Daily discipline check · Your personal limit is 3 trades per day. <b id="dailyDiscipline">No trades recorded yet.</b></div>
  <h3 style="margin-top:18px">Strategy breakdown</h3>
  <div class="tablewrap"><table><thead><tr><th>Strategy</th><th>Trades</th><th>Win rate</th><th>Net R</th><th>Average R</th></tr></thead><tbody id="strategyRows"><tr><td colspan="5" class="muted">Add journal entries with strategy names to compare setups.</td></tr></tbody></table></div>
+ <div class="two" style="margin-top:16px">
+  <div><h3>Buy vs sell performance</h3><div class="tablewrap"><table><thead><tr><th>Direction</th><th>Trades</th><th>Win rate</th><th>Net R</th></tr></thead><tbody id="sideRows"><tr><td colspan="4">No data yet.</td></tr></tbody></table></div></div>
+  <div><h3>Session performance</h3><div class="tablewrap"><table><thead><tr><th>Session</th><th>Trades</th><th>Win rate</th><th>Net R</th></tr></thead><tbody id="sessionRows"><tr><td colspan="4">No data yet.</td></tr></tbody></table></div></div>
+ </div>
  <h3 style="margin-top:18px">Trade history</h3>
  <div class="tablewrap" style="margin-top:14px"><table><thead><tr><th>Date / candle</th><th>Side</th><th>Strategy</th><th>Outcome</th><th>R</th><th>Note</th><th></th></tr></thead><tbody id="journalRows"><tr><td colspan="7" class="muted">No journal entries yet.</td></tr></tbody></table></div>
  <div class="controls"><button id="clearJournal" class="smallbtn">Clear journal</button><button id="backup" class="smallbtn">Download backup</button><label for="restoreFile" class="smallbtn" style="border:1px solid #30394a;border-radius:9px;padding:8px;cursor:pointer">Restore backup</label><input id="restoreFile" class="file" type="file" accept=".json,application/json"></div>
@@ -97,11 +102,17 @@ function stats(){
  let groups={};journal.forEach(x=>{let name=(x.strategy||'Unlabelled').trim()||'Unlabelled';if(!groups[name])groups[name]=[];groups[name].push(x)});
  let entries=Object.entries(groups).sort((a,b)=>b[1].length-a[1].length);
  $('strategyRows').innerHTML=entries.length?entries.map(([name,a])=>{let w=a.filter(x=>x.outcome==='Win').length,n=a.reduce((s,x)=>s+x.r,0);return '<tr><td>'+escapeHTML(name)+'</td><td>'+a.length+'</td><td>'+(w/a.length*100).toFixed(1)+'%</td><td>'+n.toFixed(2)+'R</td><td>'+(n/a.length).toFixed(2)+'R</td></tr>'}).join(''):'<tr><td colspan="5" class="muted">Add journal entries with strategy names to compare setups.</td></tr>';
+ const summarize=(items)=>{let keys=items.map(x=>x[0]);return keys.map(k=>{let a=items.find(x=>x[0]===k)[1],w=a.filter(x=>x.outcome==='Win').length,n=a.reduce((s,x)=>s+x.r,0);return '<tr><td>'+escapeHTML(k)+'</td><td>'+a.length+'</td><td>'+(w/a.length*100).toFixed(1)+'%</td><td>'+n.toFixed(2)+'R</td></tr>'}).join('')};
+ let sideGroups=['buy','sell'].map(k=>[k,journal.filter(x=>x.side===k)]).filter(x=>x[1].length);
+ $('sideRows').innerHTML=sideGroups.length?summarize(sideGroups):'<tr><td colspan="4" class="muted">No trades yet.</td></tr>';
+ let sessionMap={};journal.forEach(x=>{let k=x.session||'Unspecified';(sessionMap[k]||(sessionMap[k]=[])).push(x)});
+ let sessionGroups=Object.entries(sessionMap);
+ $('sessionRows').innerHTML=sessionGroups.length?summarize(sessionGroups):'<tr><td colspan="4" class="muted">No trades yet.</td></tr>';
  $('journalRows').innerHTML=journal.length?journal.slice().reverse().map(x=>'<tr><td>'+escapeHTML(x.date)+'</td><td>'+escapeHTML(x.side)+'</td><td>'+escapeHTML(x.strategy||'—')+'</td><td class="'+(x.outcome==='Win'?'positive':x.outcome==='Loss'?'negative':'')+'">'+escapeHTML(x.outcome)+'</td><td>'+x.r.toFixed(2)+'R</td><td>'+escapeHTML(x.note||'')+'</td><td><button class="smallbtn" data-delete="'+x.id+'">Delete</button></td></tr>').join(''):'<tr><td colspan="7" class="muted">No journal entries yet.</td></tr>';
  persist()
 }
 function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function record(outcome){let q=calc();if(!q){alert('Please enter valid entry, stop-loss and take-profit levels first.');return}let r=outcome==='Win'?q.rr:outcome==='Loss'?-1:0;journal.push({id:String(Date.now())+Math.random().toString(16).slice(2),date:bars[shown-1]?new Date(bars[shown-1].time*1000).toISOString().replace('T',' ').slice(0,16):new Date().toISOString().slice(0,16),side:q.side,outcome,r,strategy:$('strategy').value.trim(),note:$('note').value.trim()});stats()}
+function record(outcome){let q=calc();if(!q){alert('Please enter valid entry, stop-loss and take-profit levels first.');return}let r=outcome==='Win'?q.rr:outcome==='Loss'?-1:0;journal.push({id:String(Date.now())+Math.random().toString(16).slice(2),date:bars[shown-1]?new Date(bars[shown-1].time*1000).toISOString().replace('T',' ').slice(0,16):new Date().toISOString().slice(0,16),side:q.side,session:$('session').value,outcome,r,strategy:$('strategy').value.trim(),note:$('note').value.trim()});stats()}
 $('chooseCsv').onclick=()=>$('csvFile').click();$('csvFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{loadData(parseCSV(await f.text()));}catch(err){alert(err.message)}e.target.value=''};
 $('sample').onclick=()=>loadData(sampleData());$('back').onclick=()=>{stopPlay();shown=Math.max(1,shown-1);render()};$('forward').onclick=()=>{shown=Math.min(bars.length,shown+1);render()};$('restart').onclick=()=>{stopPlay();shown=Math.min(1,bars.length);render()};$('play').onclick=()=>{if(playing){stopPlay();return}if(!bars.length)return;playing=true;$('play').textContent='Ⅱ Pause';playTimer=setInterval(()=>{if(shown>=bars.length){stopPlay();return}shown++;render()},700)};
 $('calculate').onclick=calc;$('mark').onclick=drawLines;['entry','sl','tp','side','balance','riskPct'].forEach(id=>$(id).addEventListener('change',()=>{calc()}));
