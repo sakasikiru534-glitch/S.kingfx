@@ -101,7 +101,25 @@ function dateValue(v){if(v===undefined||v===null||v==='')return null;let s=Strin
 function parseCSV(text){let rows=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim()).map(line=>{let a=[],v='',q=false;for(let i=0;i<line.length;i++){let c=line[i];if(c==='"'&&line[i+1]==='"'&&q){v+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){a.push(v.trim());v=''}else v+=c}a.push(v.trim());return a});if(rows.length<2)throw Error('CSV needs a header row and at least one candle.');let h=rows[0].map(x=>x.toLowerCase().replace(/[^a-z]/g,''));const ix=(names)=>h.findIndex(x=>names.includes(x));let ti=ix(['time','date','datetime','timestamp']);let oi=ix(['open']),hi=ix(['high']),li=ix(['low']),ci=ix(['close']),vi=ix(['volume','tickvolume']);if([ti,oi,hi,li,ci].some(x=>x<0))throw Error('Required columns: Date/Time, Open, High, Low, Close.');let out=[];for(let r of rows.slice(1)){let time=dateValue(r[ti]),open=Number(r[oi]),high=Number(r[hi]),low=Number(r[li]),close=Number(r[ci]),volume=vi>=0?Number(r[vi])||0:0;if(time&&[open,high,low,close].every(Number.isFinite)&&high>=Math.max(open,close,low)&&low<=Math.min(open,close,high))out.push({time,open,high,low,close,volume})}out.sort((a,b)=>a.time-b.time);out=out.filter((x,i)=>!i||x.time!==out[i-1].time);if(out.length<2)throw Error('Could not read enough valid candles. Check your CSV dates and prices.');return out}
 function sampleData(){let p=2350,t=Date.UTC(2025,0,2)/1000,a=[];for(let i=0;i<240;i++){let o=p,c=o+(Math.random()-.49)*4,h=Math.max(o,c)+Math.random()*1.5,l=Math.min(o,c)-Math.random()*1.5;a.push({time:t,open:+o.toFixed(2),high:+h.toFixed(2),low:+l.toFixed(2),close:+c.toFixed(2)});p=c;t+=300}return a}
 function stopPlay(){playing=false;clearInterval(playTimer);$('play').textContent='▶ Play'}
-function initChart(){if(!window.LightweightCharts){$('chart').innerHTML='<div class="notice">Chart library did not load. Check your internet connection and refresh.</div>';return}chart=LightweightCharts.createChart($('chart'),{width:$('chart').clientWidth,height:$('chart').clientHeight,layout:{background:{type:'solid',color:'#11151d'},textColor:'#96a2b5'},grid:{vertLines:{color:'#202633'},horzLines:{color:'#202633'}},rightPriceScale:{borderColor:'#30394a'},timeScale:{borderColor:'#30394a',timeVisible:true},crosshair:{mode:0}});candleSeries=chart.addSeries(LightweightCharts.CandlestickSeries,{upColor:'#26bd8a',downColor:'#f06c78',borderVisible:false,wickUpColor:'#26bd8a',wickDownColor:'#f06c78'});new ResizeObserver(()=>chart.applyOptions({width:$('chart').clientWidth,height:$('chart').clientHeight})).observe($('chart'))}
+function initChart(){
+ const host=$('chart');
+ function buildChart(){
+  if(!window.LightweightCharts){host.innerHTML='<div class="notice">Chart library could not load. Check your connection and refresh.</div>';return}
+  try{
+   chart=LightweightCharts.createChart(host,{width:Math.max(320,host.clientWidth),height:host.clientHeight||330,layout:{background:{type:'solid',color:'#11151d'},textColor:'#96a2b5'},grid:{vertLines:{color:'#202633'},horzLines:{color:'#202633'}},rightPriceScale:{borderColor:'#30394a'},timeScale:{borderColor:'#30394a',timeVisible:true},crosshair:{mode:0}});
+   candleSeries=chart.addSeries(LightweightCharts.CandlestickSeries,{upColor:'#26bd8a',downColor:'#f06c78',borderVisible:false,wickUpColor:'#26bd8a',wickDownColor:'#f06c78'});
+   new ResizeObserver(()=>{if(chart)chart.applyOptions({width:Math.max(320,host.clientWidth),height:host.clientHeight||330})}).observe(host);
+   render();
+  }catch(err){host.innerHTML='<div class="notice">Chart error: '+String(err.message||err)+'</div>'}
+ }
+ if(window.LightweightCharts){buildChart();return}
+ host.innerHTML='<div class="notice">Loading chart tools…</div>';
+ const fallback=document.createElement('script');
+ fallback.src='https://cdn.jsdelivr.net/npm/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js';
+ fallback.onload=buildChart;
+ fallback.onerror=()=>{host.innerHTML='<div class="notice">Chart tools did not load. Please check your internet connection and reopen the page.</div>'};
+ document.head.appendChild(fallback);
+}
 function timeframeLabel(seconds){return ({60:"1m",300:"5m",900:"15m",1800:"30m",3600:"1H",14400:"4H",86400:"1D",604800:"1W"})[seconds]||seconds+"s"}
 function bucketTime(time,seconds){if(seconds===604800){let d=new Date(time*1000),day=(d.getUTCDay()+6)%7;d.setUTCDate(d.getUTCDate()-day);d.setUTCHours(0,0,0,0);return Math.floor(d.getTime()/1000)}return Math.floor(time/seconds)*seconds}
 function aggregateData(data,seconds){let out=[];for(const b of data){let t=bucketTime(b.time,seconds),last=out[out.length-1];if(last&&last.time===t){last.high=Math.max(last.high,b.high);last.low=Math.min(last.low,b.low);last.close=b.close;last.volume=(last.volume||0)+(b.volume||0)}else out.push({time:t,open:b.open,high:b.high,low:b.low,close:b.close,volume:b.volume||0})}return out}
